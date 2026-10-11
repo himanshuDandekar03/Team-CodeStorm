@@ -148,25 +148,27 @@ sparsity pattern is:
 
 ### 6.2 Post-Burn Miss Distance
 
-The post-burn miss distance is computed by forward-propagating the
-ΔV through the CW matrix:
+### 6.2 Trajectory Propagation (Universal Keplerian Mechanics)
 
-```python
-delta_r_rtn = M @ dv_rtn_kms          # CW displacement at TCA
-miss_vec_rtn = eci_to_rtn(r_sec - r_pri, rtn_matrix)
-new_miss_vec = miss_vec_rtn + delta_r_rtn
-new_miss_km = |new_miss_vec|
-```
+While the Clohessy–Wiltshire (CW) equations provide directional sensitivity, candidate post-burn trajectories are propagated to TCA using **singularity-free Universal Variable Keplerian two-body mechanics (`propagate_universal()`, Vallado Algorithm 8)**.
+- Solves universal anomaly $\chi$ via Stumpff functions $c_2(z), c_3(z)$
+- Computes post-burn state via Lagrange $f, g, \dot{f}, \dot{g}$ coefficients
+- Evaluates candidate impulsive maneuvers across all 6 cardinal RTN burn directions: $+T, -T, +N, -N, +R, -R$
 
-### 6.3 Fuel Estimation
+### 6.3 Fuel Estimation (Tsiolkovsky Rocket Equation)
 
-Propellant mass is computed via the Tsiolkovsky rocket equation:
+Propellant mass is computed via `compute_fuel_consumption()` using Tsiolkovsky's ideal rocket equation:
 
 ```
-m_fuel = m_sat · (1 − exp(−ΔV / (I_sp · g₀)))
+m_prop = m₀ · (1 − exp(−ΔV / (I_sp · g₀)))
 ```
 
-Default parameters: m_sat = 1000 kg, I_sp = 300 s, g₀ = 9.80665 m/s².
+**Parameters & Verification Benchmarks:**
+- Standard Earth gravity: $g_0 = 9.80665 \text{ m/s}^2$
+- Specific impulse: $I_{sp} = 300.0 \text{ s}$ (default)
+- Spacecraft pre-burn mass: $m_0 = 1000.0 \text{ kg}$
+- For $\Delta V = 0.22 \text{ m/s}$: $m_{\text{prop}} = 1000 \cdot (1 - \exp(-0.22 / (300 \cdot 9.80665))) = 0.07478 \text{ kg}$
+- (For $m_0 = 500.0 \text{ kg}$, $m_{\text{prop}} = 0.03739 \text{ kg} \approx 0.038 \text{ kg}$)
 
 ---
 
@@ -200,14 +202,17 @@ modify propagated trajectories.
 
 ---
 
-## 8. Test Strategy
+## 8. Test Strategy & Coverage
 
 All tests use synthetic inputs with known expected outputs. No
-network calls are made during testing.
+network calls are made during testing. Total: 99 automated tests.
 
 | Test File | What It Validates |
 |---|---|
 | `test_orbital_propagation.py` | TLE parsing, unit conversion, derived elements, SGP4 vectors |
 | `test_conjunction_detector.py` | kd-tree filtering, Pc formula, risk classification, serialisation |
-| `test_avoidance_maneuver.py` | RTN frame, CW matrix, Tsiolkovsky, forward propagation |
+| `test_end_to_end_conjunction.py` | Pipeline end-to-end, sub-km close approach, between-sample encounters, stale TLEs, NaN handling, deduplication |
+| `test_avoidance_maneuver.py` | RTN frame, CW matrix, Tsiolkovsky fuel exact verification, forward propagation |
+| `test_advanced_avoidance.py` | Universal Keplerian energy conservation, CW assumptions, 6-direction evaluation, lowest-fuel selection, infeasible rejection |
 | `test_space_weather.py` | X-ray classes, drag formula, G-scale, SGP4 isolation |
+

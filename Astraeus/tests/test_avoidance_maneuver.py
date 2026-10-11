@@ -180,6 +180,25 @@ class TestTsiolkovskyFuel:
         fuel = m_sat * (1 - np.exp(-dv / (isp * g0)))
         assert abs(fuel) < 1e-10
 
+    def test_exact_analytical_verification_1000kg_and_500kg(self):
+        """
+        Regression test addressing Audit Finding 1:
+        Verify exact propellant consumption for ΔV = 0.22 m/s, Isp = 300 s, g0 = 9.80665 m/s²:
+        - For m0 = 1000.0 kg: m_prop = 1000 * (1 - exp(-0.22 / (300 * 9.80665))) ≈ 0.07478 kg.
+        - For m0 = 500.0 kg:  m_prop = 500 * (1 - exp(-0.22 / (300 * 9.80665)))  ≈ 0.03739 kg (≈0.038 kg).
+        Confirms that 0.038 kg corresponds to m0 = 500 kg (or two 0.11 m/s burns), not m0 = 1000 kg.
+        """
+        from avoidance_maneuver import compute_fuel_consumption
+        # Case 1: 1000 kg satellite
+        fuel_1000 = compute_fuel_consumption(delta_v_m_s=0.22, initial_mass_kg=1000.0, isp_s=300.0)
+        assert pytest.approx(0.074779, rel=1e-4) == fuel_1000
+        assert fuel_1000 != pytest.approx(0.038, abs=0.01)  # Must NOT be 0.038 kg for 1000 kg
+
+        # Case 2: 500 kg satellite
+        fuel_500 = compute_fuel_consumption(delta_v_m_s=0.22, initial_mass_kg=500.0, isp_s=300.0)
+        assert pytest.approx(0.037389, rel=1e-4) == fuel_500
+        assert round(fuel_500, 3) == 0.037 or round(fuel_500, 3) == 0.038
+
 
 class TestAvoidanceManeuverComputation:
     """Test the full avoidance maneuver computation."""

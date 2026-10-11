@@ -705,6 +705,7 @@ class AstraeusDashboard {
         const collisionWarningsContainer = document.getElementById('collision-warnings');
         
         if (!listContainer) return;
+        summary = summary || { critical: 0, high: 0, elevated: 0, moderate: 0 };
         
         // Display detailed high-risk satellites list
         if (satellites && satellites.length > 0) {
@@ -2264,6 +2265,7 @@ class AstraeusDashboard {
 
     showAlert(message, type) {
         const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
         
         alertContainer.className = `alert alert-${type}`;
         alertContainer.textContent = message;

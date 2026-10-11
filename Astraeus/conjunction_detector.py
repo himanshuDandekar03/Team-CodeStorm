@@ -47,18 +47,22 @@ class ConjunctionEvent:
     """Represents a single conjunction (close approach) between two objects."""
     __slots__ = (
         "primary_idx", "secondary_idx",
+        "primary_norad", "secondary_norad",
         "primary_name", "secondary_name",
+        "primary_epoch", "secondary_epoch",
+        "max_epoch_age_days", "is_stale",
         "tca", "miss_distance_km",
         "relative_velocity_km_s",
         "collision_probability",
+        "max_possible_pc",
         "pc_status", "pc_method",
-        "risk_level",
+        "risk_level", "operational_priority",
         "primary_pos", "secondary_pos",
         "primary_vel", "secondary_vel",
     )
 
     def __init__(self, **kwargs):
-        # Set defaults for new fields so old callers don't break
+        # Set defaults for all slots so old callers don't break
         for slot in self.__slots__:
             setattr(self, slot, kwargs.get(slot))
         # Backwards compatibility: if pc_status not provided, infer
@@ -69,26 +73,94 @@ class ConjunctionEvent:
                 self.pc_status = "UNAVAILABLE (No Covariance)"
         if self.pc_method is None:
             self.pc_method = "N/A"
+        if self.operational_priority is None:
+            self.operational_priority = classify_operational_priority(
+                self.miss_distance_km, self.tca, rel_vel=self.relative_velocity_km_s
+            )
 
     def to_dict(self):
         pc = self.collision_probability
+        max_pc = self.max_possible_pc
+        tca_val = self.tca.isoformat() if isinstance(self.tca, datetime) else str(self.tca)
+        p_ep = self.primary_epoch.isoformat() if isinstance(self.primary_epoch, datetime) else (str(self.primary_epoch) if self.primary_epoch else None)
+        s_ep = self.secondary_epoch.isoformat() if isinstance(self.secondary_epoch, datetime) else (str(self.secondary_epoch) if self.secondary_epoch else None)
+
         return {
             "primary_idx": int(self.primary_idx) if self.primary_idx is not None else 0,
             "secondary_idx": int(self.secondary_idx) if self.secondary_idx is not None else 0,
+            "primary_norad": int(self.primary_norad) if self.primary_norad is not None else 0,
+            "secondary_norad": int(self.secondary_norad) if self.secondary_norad is not None else 0,
             "primary_name": getattr(self, "primary_name", "") or "",
             "secondary_name": getattr(self, "secondary_name", "") or "",
-            "tca": self.tca.isoformat() if isinstance(self.tca, datetime) else str(self.tca),
+            "primary_epoch": p_ep,
+            "secondary_epoch": s_ep,
+            "max_epoch_age_days": round(float(self.max_epoch_age_days), 2) if self.max_epoch_age_days is not None else None,
+            "is_stale": bool(self.is_stale) if self.is_stale is not None else False,
+            "tca": tca_val,
             "miss_distance_km": round(float(self.miss_distance_km), 4) if self.miss_distance_km is not None else 0.0,
             "relative_velocity_km_s": round(float(self.relative_velocity_km_s), 4) if self.relative_velocity_km_s is not None else 0.0,
             "collision_probability": float(pc) if pc is not None else None,
+            "max_possible_pc": float(max_pc) if max_pc is not None else None,
             "pc_status": self.pc_status or "UNAVAILABLE (No Covariance)",
             "pc_method": self.pc_method or "N/A",
             "risk_level": self.risk_level or "GREEN",
+            "operational_priority": self.operational_priority or "ROUTINE",
             "primary_pos": [round(float(x), 3) for x in self.primary_pos] if getattr(self, "primary_pos", None) is not None else [0, 0, 0],
             "secondary_pos": [round(float(x), 3) for x in self.secondary_pos] if getattr(self, "secondary_pos", None) is not None else [0, 0, 0],
             "primary_vel": [round(float(x), 3) for x in self.primary_vel] if getattr(self, "primary_vel", None) is not None else [0, 0, 0],
             "secondary_vel": [round(float(x), 3) for x in self.secondary_vel] if getattr(self, "secondary_vel", None) is not None else [0, 0, 0],
         }
+
+
+def get_tle_epoch(sat):
+    """Convert Satrec epoch Julian Date to UTC datetime."""
+    try:
+        jd = getattr(sat, "jdsatepoch", 0.0) + getattr(sat, "jdsatepochF", 0.0)
+        if jd <= 0:
+            return None
+        return datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc) + timedelta(days=jd - 2451545.0)
+    except Exception:
+        return None
+
+
+def check_tle_freshness(sat, reference_dt=None, stale_threshold_days=14.0):
+    """
+    Check if a TLE epoch is stale relative to reference_dt.
+    Returns (epoch_dt, age_days, is_stale).
+    """
+    if reference_dt is None:
+        reference_dt = datetime.now(timezone.utc)
+    epoch_dt = get_tle_epoch(sat)
+    if epoch_dt is None:
+        return None, 999.0, True
+    age_days = abs((reference_dt - epoch_dt).total_seconds()) / 86400.0
+    return epoch_dt, round(age_days, 2), age_days > stale_threshold_days
+
+
+def classify_operational_priority(miss_km, tca_dt=None, now_dt=None, rel_vel=None):
+    """
+    Operational Alert Priority classification (distinct from miss distance & Pc):
+    - CRITICAL: miss < 1 km and TCA within 24h
+    - HIGH: miss < 5 km or (miss < 10 km and TCA within 12h)
+    - ELEVATED: miss < 10 km
+    - ROUTINE: miss >= 10 km
+    """
+    if miss_km is None:
+        return "ROUTINE"
+    hours_to_tca = None
+    if tca_dt is not None:
+        if now_dt is None:
+            now_dt = datetime.now(timezone.utc)
+        if isinstance(tca_dt, datetime):
+            hours_to_tca = max(0.0, (tca_dt - now_dt).total_seconds() / 3600.0)
+
+    if miss_km < 1.0 and (hours_to_tca is None or hours_to_tca <= 24.0):
+        return "CRITICAL"
+    if miss_km < 5.0 or (hours_to_tca is not None and hours_to_tca <= 12.0 and miss_km < 10.0):
+        return "HIGH"
+    if miss_km < 10.0:
+        return "ELEVATED"
+    return "ROUTINE"
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -187,6 +259,55 @@ def find_close_pairs(positions, threshold_km=None):
     return [(int(valid_idx[a]), int(valid_idx[b])) for a, b in raw_pairs]
 
 
+# ── Orbital Geometry & Altitude Filtering ───────────────────────────
+def compute_orbital_altitudes(sat, mu=MU_EARTH, r_earth=EARTH_RADIUS_KM):
+    """
+    Compute perigee and apogee altitudes (km) above Earth surface from a Satrec object.
+    Returns (h_perigee_km, h_apogee_km).
+    """
+    try:
+        n_rad_min = getattr(sat, "no_kozai", 0.0)
+        if n_rad_min <= 0:
+            return 0.0, 0.0
+        n_rad_s = n_rad_min / 60.0
+        a = (mu / (n_rad_s ** 2)) ** (1.0 / 3.0)
+        e = getattr(sat, "ecco", 0.0)
+        hp = a * (1.0 - e) - r_earth
+        ha = a * (1.0 + e) - r_earth
+        return float(hp), float(ha)
+    except Exception:
+        return 0.0, 0.0
+
+
+def check_altitude_overlap(hp1, ha1, hp2, ha2, margin_km=100.0):
+    """
+    Check if two orbital altitude bands overlap within a conservative safety margin.
+    If False, the two orbits are radially separated and can never intersect.
+    """
+    return not ((hp1 - ha2 > margin_km) or (hp2 - ha1 > margin_km))
+
+
+def segment_minimum_distance(p1_start, p1_end, p2_start, p2_end):
+    """
+    Analytic closest distance between two objects moving linearly over interval [0, 1].
+    r(s) = (p1_start - p2_start) + s * ((p1_end - p1_start) - (p2_end - p2_start))
+         = r0 + s * Δr
+    Returns:
+        (min_distance_km, s_fractional_time)
+    """
+    r0 = np.asarray(p1_start, dtype=float) - np.asarray(p2_start, dtype=float)
+    dr1 = np.asarray(p1_end, dtype=float) - np.asarray(p1_start, dtype=float)
+    dr2 = np.asarray(p2_end, dtype=float) - np.asarray(p2_start, dtype=float)
+    dr = dr1 - dr2
+    dr_sq = float(np.dot(dr, dr))
+    if dr_sq < 1e-12:
+        return float(np.linalg.norm(r0)), 0.0
+    s_star = -float(np.dot(r0, dr)) / dr_sq
+    s_clamped = max(0.0, min(1.0, s_star))
+    r_min = r0 + s_clamped * dr
+    return float(np.linalg.norm(r_min)), s_clamped
+
+
 # ────────────────────────────────────────────────────────────────────
 #  Phase 2 — Refine TCA via golden-section search
 # ────────────────────────────────────────────────────────────────────
@@ -197,10 +318,12 @@ def refine_tca(sat_a, sat_b, t_start, t_end, max_iter=30, tol_sec=0.1):
     search and return (tca_datetime, miss_distance_km, rel_vel_km_s,
     pos_a, pos_b, vel_a, vel_b).
 
-    Note: Golden-section search finds a local minimum of the unimodal
-    distance function within the bracket.  If the distance function is
-    not unimodal in [t_start, t_end], the result may not be the global
-    minimum.
+    Precision & Uncertainty Note:
+    - `tol_sec=0.1` is the NUMERICAL minimization bracket stopping tolerance.
+    - This numerical tolerance must NOT be conflated with physical prediction
+      accuracy. Real physical ephemeris uncertainty in SGP4 TLE predictions in LEO
+      is typically ±5 to ±60+ seconds (growing with lead time and solar activity)
+      due to unmodeled drag, gravitational harmonics, and tracking intervals.
     """
     golden = (np.sqrt(5) - 1) / 2  # ≈ 0.618
 
@@ -301,6 +424,24 @@ def compute_collision_probability(
     return float(np.clip(Pc, 0.0, 1.0)), "COMPUTED (Chan 2-D isotropic)"
 
 
+def compute_max_collision_probability(miss_distance_km, hard_body_radius_m=None):
+    """
+    Compute Alfano maximum collision probability (upper bound).
+    When covariance scale sigma is unknown, the maximum possible Pc occurs
+    at sigma = d / sqrt(2), giving:
+        Pc_max = R^2 / (e * d^2)   for d > R * sqrt(e / 2)
+        Pc_max = 1.0               for d <= R * sqrt(e / 2)
+    where R is combined hard-body radius in km, e = 2.71828...
+    """
+    if hard_body_radius_m is None:
+        hard_body_radius_m = COMBINED_HARD_BODY_RADIUS_M
+    R_km = hard_body_radius_m / 1000.0
+    if miss_distance_km <= 0 or miss_distance_km <= R_km:
+        return 1.0
+    val = (R_km ** 2) / (np.e * (miss_distance_km ** 2))
+    return float(np.clip(val, 0.0, 1.0))
+
+
 def risk_level_from_pc(pc):
     """Classify a Pc value into a human-readable risk level."""
     if pc is None:
@@ -361,7 +502,7 @@ def screen_conjunctions(
     3. At each step, use a kd-tree to find spatially close pairs.
     4. For each candidate pair, refine TCA via golden-section search.
     5. Compute collision probability (Pc) for each conjunction.
-    6. Return a list of ConjunctionEvent objects sorted by Pc descending.
+    6. Return a list of ConjunctionEvent objects sorted by miss distance ascending.
     """
     if horizon_hours is None:
         horizon_hours = PROPAGATION_HORIZON_HOURS
@@ -383,13 +524,13 @@ def screen_conjunctions(
           f"(step={step_sec}s, filter={screening_km} km, threshold={conjunction_threshold_km} km)")
 
     now = datetime.now(timezone.utc)
-    n_steps = int(horizon_hours * 3600 / step_sec)
     # Limit steps for performance (sample coarsely, then refine)
     coarse_step = max(step_sec, 300)  # At least 5-min steps for coarse scan
     n_coarse = int(horizon_hours * 3600 / coarse_step)
 
-    # Collect candidate pairs with their coarse bracket
-    candidate_pairs = {}   # (i, j) → (t_start, t_end, min_dist)
+    # Collect candidate pairs with pass tracking:
+    # key: (i, j) → list of pass dicts: [{"t0": dt, "t1": dt, "min_dist": float}]
+    candidate_passes = {}
 
     print(f"   Phase 1: Coarse scan ({n_coarse} steps @ {coarse_step}s)...")
     for step_idx in range(n_coarse + 1):
@@ -398,59 +539,118 @@ def screen_conjunctions(
         close = find_close_pairs(positions, screening_km)
 
         for i, j in close:
-            dist = np.linalg.norm(positions[i] - positions[j])
+            p_i, p_j = positions[i], positions[j]
+            v_i, v_j = velocities[i], velocities[j]
+            dist = float(np.linalg.norm(p_i - p_j))
             key = (min(i, j), max(i, j))
-            if key not in candidate_pairs or dist < candidate_pairs[key][2]:
-                # Bracket: [epoch - coarse_step, epoch + coarse_step]
-                t0 = epoch - timedelta(seconds=coarse_step)
-                t1 = epoch + timedelta(seconds=coarse_step)
-                candidate_pairs[key] = (t0, t1, dist)
 
-    print(f"   Phase 1 complete: {len(candidate_pairs)} candidate pairs found.")
+            # Range-rate zero-crossing projection for encounters between sample steps
+            r_rel = p_i - p_j
+            v_rel = v_i - v_j
+            v_sq = float(np.dot(v_rel, v_rel))
+            t_proj_sec = 0.0
+            if v_sq > 1e-6:
+                tau = -float(np.dot(r_rel, v_rel)) / v_sq
+                if -coarse_step <= tau <= 2 * coarse_step:
+                    t_proj_sec = tau
 
-    if not candidate_pairs:
+            # Bracket centered around estimated encounter
+            bracket_center = epoch + timedelta(seconds=t_proj_sec)
+            t0 = bracket_center - timedelta(seconds=coarse_step)
+            t1 = bracket_center + timedelta(seconds=coarse_step)
+
+            if key not in candidate_passes:
+                candidate_passes[key] = [{"t0": t0, "t1": t1, "min_dist": dist}]
+            else:
+                # Deduplicate: check if this detection belongs to an existing pass (< 45 min)
+                matched_pass = False
+                for p in candidate_passes[key]:
+                    pass_center = p["t0"] + (p["t1"] - p["t0"]) / 2
+                    if abs((bracket_center - pass_center).total_seconds()) < 2700.0:  # 45 min
+                        # Merge into same pass: expand bracket and update minimum coarse distance
+                        p["t0"] = min(p["t0"], t0)
+                        p["t1"] = max(p["t1"], t1)
+                        p["min_dist"] = min(p["min_dist"], dist)
+                        matched_pass = True
+                        break
+                if not matched_pass:
+                    # New distinct pass in a different orbit
+                    candidate_passes[key].append({"t0": t0, "t1": t1, "min_dist": dist})
+
+    total_candidates = sum(len(passes) for passes in candidate_passes.values())
+    print(f"   Phase 1 complete: {total_candidates} candidate passes found across {len(candidate_passes)} object pairs.")
+
+    if total_candidates == 0:
         return []
 
+    # Precompute perigee/apogee altitudes for all objects in catalogue
+    altitudes = [compute_orbital_altitudes(sat) for _, sat in catalogue]
+
     # 2. Refine TCA and compute Pc
-    print(f"   Phase 2: Refining TCA for {len(candidate_pairs)} pairs...")
+    print(f"   Phase 2: Refining TCA for {total_candidates} candidate passes...")
     events = []
 
-    for (i, j), (t0, t1, coarse_dist) in candidate_pairs.items():
+    for (i, j), passes in candidate_passes.items():
+        # Altitude overlap pre-filter: skip pairs whose orbital shells never intersect
+        hp_i, ha_i = altitudes[i]
+        hp_j, ha_j = altitudes[j]
+        if not check_altitude_overlap(hp_i, ha_i, hp_j, ha_j, margin_km=screening_km + 25.0):
+            continue
+
         name_i, sat_i = catalogue[i]
         name_j, sat_j = catalogue[j]
 
-        tca_dt, miss_km, rel_vel, r1, r2, v1, v2 = refine_tca(
-            sat_i, sat_j, t0, t1
-        )
+        epoch_i, age_i, stale_i = check_tle_freshness(sat_i, now)
+        epoch_j, age_j, stale_j = check_tle_freshness(sat_j, now)
+        max_age_days = max(age_i, age_j)
+        is_stale = stale_i or stale_j
 
-        if miss_km > conjunction_threshold_km:
-            continue  # Not close enough after refinement
+        norad_i = getattr(sat_i, "satnum", 0)
+        norad_j = getattr(sat_j, "satnum", 0)
 
-        # For TLE-only catalogue pairs, no covariance exists.
-        # Pc is reported as None; risk is based on miss-distance thresholds.
-        pc, pc_status = compute_collision_probability(
-            miss_km, has_covariance=False
-        )
-        rl = risk_level(pc=pc, miss_km=miss_km)
+        for p in passes:
+            tca_dt, miss_km, rel_vel, r1, r2, v1, v2 = refine_tca(
+                sat_i, sat_j, p["t0"], p["t1"]
+            )
 
-        event = ConjunctionEvent(
-            primary_idx=i,
-            secondary_idx=j,
-            primary_name=name_i,
-            secondary_name=name_j,
-            tca=tca_dt,
-            miss_distance_km=miss_km,
-            relative_velocity_km_s=rel_vel,
-            collision_probability=pc,
-            pc_status=pc_status,
-            pc_method="Chan 2-D isotropic" if pc is not None else "N/A",
-            risk_level=rl,
-            primary_pos=r1 if r1 is not None else [0, 0, 0],
-            secondary_pos=r2 if r2 is not None else [0, 0, 0],
-            primary_vel=v1 if v1 is not None else [0, 0, 0],
-            secondary_vel=v2 if v2 is not None else [0, 0, 0],
-        )
-        events.append(event)
+            if miss_km > conjunction_threshold_km:
+                continue  # Not close enough after refinement
+
+            # For TLE-only catalogue pairs, no covariance exists.
+            # Pc is reported as None; risk is based on miss-distance thresholds.
+            pc, pc_status = compute_collision_probability(
+                miss_km, has_covariance=False
+            )
+            max_pc = compute_max_collision_probability(miss_km)
+            rl = risk_level(pc=pc, miss_km=miss_km)
+            op_prio = classify_operational_priority(miss_km, tca_dt, now, rel_vel)
+
+            event = ConjunctionEvent(
+                primary_idx=i,
+                secondary_idx=j,
+                primary_norad=norad_i,
+                secondary_norad=norad_j,
+                primary_name=name_i,
+                secondary_name=name_j,
+                primary_epoch=epoch_i,
+                secondary_epoch=epoch_j,
+                max_epoch_age_days=max_age_days,
+                is_stale=is_stale,
+                tca=tca_dt,
+                miss_distance_km=miss_km,
+                relative_velocity_km_s=rel_vel,
+                collision_probability=pc,
+                max_possible_pc=max_pc,
+                pc_status=pc_status,
+                pc_method="Chan 2-D isotropic" if pc is not None else "N/A",
+                risk_level=rl,
+                operational_priority=op_prio,
+                primary_pos=r1 if r1 is not None else [0, 0, 0],
+                secondary_pos=r2 if r2 is not None else [0, 0, 0],
+                primary_vel=v1 if v1 is not None else [0, 0, 0],
+                secondary_vel=v2 if v2 is not None else [0, 0, 0],
+            )
+            events.append(event)
 
     # Sort by miss distance ascending (closest first), since Pc is
     # unavailable for TLE-only pairs and cannot be used for ranking.

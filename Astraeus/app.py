@@ -101,6 +101,114 @@ latest_data = {
     'status': 'initializing'
 }
 
+high_risk_cache = {
+    'timestamp': None,
+    'data': None
+}
+
+def build_high_risk_satellites_payload(features_df, results):
+    """Build standardized threat analysis and high-risk satellites payload"""
+    high_risk_satellites = []
+    if results and results.get('debris_detection') and features_df is not None:
+        debris_predictions = results['debris_detection']['predictions']
+        debris_probabilities = results['debris_detection']['probabilities']
+        
+        for idx, row in features_df.iterrows():
+            if idx >= len(debris_predictions):
+                continue
+                
+            is_debris = bool(debris_predictions[idx])
+            debris_prob = float(debris_probabilities[idx][1]) if len(debris_probabilities[idx]) > 1 else 0.0
+            
+            is_high_risk = debris_prob > 0.3 or idx in results.get('high_risk_objects', [])
+            
+            if is_high_risk:
+                altitude = float(row.get('altitude', 0))
+                
+                if debris_prob > 0.7:
+                    threat_level = 'CRITICAL'
+                elif debris_prob > 0.5:
+                    threat_level = 'HIGH'
+                elif debris_prob > 0.3:
+                    threat_level = 'ELEVATED'
+                else:
+                    threat_level = 'MODERATE'
+                
+                status_flags = []
+                if is_debris:
+                    status_flags.append('DEBRIS_CONFIRMED')
+                if altitude < 300:
+                    status_flags.append('LOW_ALTITUDE')
+                if debris_prob > 0.5:
+                    status_flags.append('HIGH_COLLISION_RISK')
+                
+                if altitude < 250:
+                    threat_type = 'Immediate Reentry Risk'
+                    eta = '< 24 hours'
+                elif altitude < 400:
+                    threat_type = 'Atmospheric Decay'
+                    eta = '1-7 days'
+                elif is_debris and debris_prob > 0.6:
+                    threat_type = 'Collision Hazard'
+                    eta = 'Ongoing'
+                elif debris_prob > 0.5:
+                    threat_type = 'Orbital Instability'
+                    eta = '1-30 days'
+                else:
+                    threat_type = 'Monitoring Required'
+                    eta = 'Ongoing'
+                
+                sat_name = f"SAT-{idx:04d}"
+                if is_debris:
+                    sat_name = f"DEBRIS-{idx:04d}"
+                elif altitude > 35000:
+                    sat_name = f"GEO-{idx:04d}"
+                elif altitude > 2000:
+                    sat_name = f"MEO-{idx:04d}"
+                else:
+                    sat_name = f"LEO-{idx:04d}"
+                
+                high_risk_satellite = {
+                    'id': int(idx),
+                    'name': sat_name,
+                    'threat_level': threat_level,
+                    'risk_level': threat_level,
+                    'debris_probability': round(debris_prob * 100, 2),
+                    'is_debris': is_debris,
+                    'status': 'DEBRIS' if is_debris else 'TRACKED',
+                    'threat_type': threat_type,
+                    'eta': eta,
+                    'altitude': altitude,
+                    'inclination': float(row.get('inclination', 0)),
+                    'position': {
+                        'altitude': altitude,
+                        'inclination': float(row.get('inclination', 0)),
+                        'x': float(row.get('pos_x', 0)),
+                        'y': float(row.get('pos_y', 0)),
+                        'z': float(row.get('pos_z', 0))
+                    },
+                    'status_flags': status_flags,
+                    'last_tracked': datetime.now().isoformat(),
+                    'priority_score': round(debris_prob * 100 + (1000 - altitude) / 10, 2)
+                }
+                high_risk_satellites.append(high_risk_satellite)
+    
+    high_risk_satellites.sort(key=lambda x: x['priority_score'], reverse=True)
+    
+    return {
+        'success': True,
+        'total_analyzed': int(len(features_df)) if features_df is not None else 0,
+        'high_risk_count': len(high_risk_satellites),
+        'satellites': high_risk_satellites,
+        'analysis_timestamp': datetime.now().isoformat(),
+        'threat_summary': {
+            'critical': len([s for s in high_risk_satellites if s['threat_level'] == 'CRITICAL']),
+            'high': len([s for s in high_risk_satellites if s['threat_level'] == 'HIGH']),
+            'elevated': len([s for s in high_risk_satellites if s['threat_level'] == 'ELEVATED']),
+            'moderate': len([s for s in high_risk_satellites if s['threat_level'] == 'MODERATE'])
+        }
+    }
+
 def initialize_predictor():
     """Initialize the collision risk predictor"""
     global predictor
@@ -170,6 +278,15 @@ def update_data():
                             avoidance_recs = compute_avoidance_for_events(c_events, lead_time_hours=6.0, max_events=5)
                     except Exception as av_err:
                         print(f"⚠️ Avoidance computation error: {av_err}")
+
+                # Pre-warm high risk cache for instantaneous /api/satellites/high-risk responses
+                try:
+                    high_risk_payload = build_high_risk_satellites_payload(features_df, results)
+                    high_risk_cache['data'] = high_risk_payload
+                    high_risk_cache['timestamp'] = datetime.now()
+                    print(f"High-risk cache pre-warmed: {high_risk_payload['high_risk_count']} objects")
+                except Exception as hr_err:
+                    print(f"⚠️ High-risk cache build error: {hr_err}")
 
                 # Update global data
                 latest_data.update({
@@ -348,11 +465,16 @@ def api_avoidance_recommendations():
 
 @app.route('/api/avoidance/plan', methods=['POST'])
 def api_avoidance_plan():
-    """Plan an avoidance maneuver for a specific conjunction event"""
+    """Plan an avoidance maneuver for a specific conjunction event with candidate evaluation"""
     try:
         data = request.get_json() or {}
         lead_time = float(data.get('lead_time_hours', 6.0))
         target_miss = float(data.get('target_miss_km', 25.0))
+        max_dv = float(data.get('max_delta_v_m_s', 50.0))
+        method = str(data.get('propagation_method', 'auto'))
+        candidate_leads = data.get('candidate_lead_times_hours')
+        if not candidate_leads:
+            candidate_leads = [lead_time] if lead_time != 6.0 else [3.0, 6.0, 12.0]
         
         event_data = data.get('conjunction')
         if not event_data and 'event_index' in data:
@@ -362,16 +484,58 @@ def api_avoidance_plan():
                 event_data = conjunctions[idx]
 
         if not event_data:
-            return jsonify({'error': 'No conjunction event specified'}), 400
+            return jsonify({'success': False, 'error': 'No conjunction event specified'}), 400
 
         from conjunction_detector import ConjunctionEvent
+        from avoidance_maneuver import evaluate_candidate_maneuvers
         ev = ConjunctionEvent(**event_data)
-        options = compute_avoidance_maneuver(ev, target_miss_km=target_miss, lead_time_hours=lead_time)
+        plan_result = evaluate_candidate_maneuvers(
+            ev,
+            target_miss_km=target_miss,
+            candidate_lead_times_hours=candidate_leads,
+            max_delta_v_m_s=max_dv,
+            propagation_method=method,
+        )
         return jsonify({
             'success': True,
+            'feasibility_status': plan_result['feasibility_status'],
             'conjunction': convert_numpy_types(ev.to_dict()),
-            'maneuver_options': convert_numpy_types(options),
-            'recommended': convert_numpy_types(options[0]) if options else None
+            'maneuver_options': convert_numpy_types(plan_result['candidates']),
+            'recommended': convert_numpy_types(plan_result['recommended']),
+            'candidate_count': plan_result['candidate_count'],
+            'feasible_count': plan_result['feasible_count'],
+            'selection_rationale': plan_result['selection_rationale'],
+            'operational_disclaimer': plan_result['operational_disclaimer'],
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/avoidance/synthetic-scenario', methods=['POST', 'GET'])
+def api_avoidance_synthetic_scenario():
+    """Generate and evaluate a reproducible synthetic conjunction scenario"""
+    try:
+        data = request.get_json() if request.method == 'POST' and request.is_json else {}
+        if not data and request.args:
+            data = request.args
+        miss_km = float(data.get('miss_km', 0.35))
+        lead_h = float(data.get('lead_time_hours', 6.0))
+        alt_km = float(data.get('altitude_km', 500.0))
+
+        from avoidance_maneuver import create_synthetic_conjunction_scenario, evaluate_candidate_maneuvers
+        synth_ev = create_synthetic_conjunction_scenario(miss_km=miss_km, lead_time_hours=lead_h, altitude_km=alt_km)
+        plan_result = evaluate_candidate_maneuvers(synth_ev, target_miss_km=25.0, candidate_lead_times_hours=[3.0, 6.0, 12.0])
+
+        return jsonify({
+            'success': True,
+            'scenario_type': 'SYNTHETIC_REPRODUCIBLE',
+            'conjunction': convert_numpy_types(synth_ev.to_dict()),
+            'feasibility_status': plan_result['feasibility_status'],
+            'maneuver_options': convert_numpy_types(plan_result['candidates']),
+            'recommended': convert_numpy_types(plan_result['recommended']),
+            'candidate_count': plan_result['candidate_count'],
+            'feasible_count': plan_result['feasible_count'],
+            'selection_rationale': plan_result['selection_rationale'],
+            'operational_disclaimer': plan_result['operational_disclaimer'],
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -569,8 +733,14 @@ def api_satellite_details(satellite_id):
 
 @app.route('/api/satellites/high-risk')
 def api_high_risk_satellites():
-    """Get all high-risk satellites with detailed status"""
+    """Get all high-risk satellites with detailed status (cached for instant response)"""
     try:
+        force = request.args.get('force', 'false').lower() == 'true'
+        
+        # Return cached results immediately if available and not forced
+        if not force and high_risk_cache.get('data') is not None:
+            return jsonify(high_risk_cache['data'])
+            
         if predictor is None:
             return jsonify({'error': 'Predictor not initialized'}), 400
             
@@ -581,121 +751,13 @@ def api_high_risk_satellites():
             return jsonify({'error': 'No satellite data available'}), 500
             
         print(f"Analyzing {len(features_df)} satellites for high-risk assessment...")
-        
-        # Run collision risk assessment
         results = predictor.assess_collision_risk(features_df)
+        payload = build_high_risk_satellites_payload(features_df, results)
         
-        high_risk_satellites = []
+        high_risk_cache['data'] = payload
+        high_risk_cache['timestamp'] = datetime.now()
         
-        if results and results.get('debris_detection'):
-            debris_predictions = results['debris_detection']['predictions']
-            debris_probabilities = results['debris_detection']['probabilities']
-            
-            for idx, row in features_df.iterrows():
-                if idx >= len(debris_predictions):
-                    continue
-                    
-                is_debris = bool(debris_predictions[idx])
-                debris_prob = float(debris_probabilities[idx][1]) if len(debris_probabilities[idx]) > 1 else 0.0
-                
-                # Consider high-risk if debris probability > 30% OR in high-risk objects list
-                is_high_risk = debris_prob > 0.3 or idx in results.get('high_risk_objects', [])
-                
-                if is_high_risk:
-                    altitude = float(row.get('altitude', 0))
-                    
-                    # Determine threat level
-                    if debris_prob > 0.7:
-                        threat_level = 'CRITICAL'
-                    elif debris_prob > 0.5:
-                        threat_level = 'HIGH'
-                    elif debris_prob > 0.3:
-                        threat_level = 'ELEVATED'
-                    else:
-                        threat_level = 'MODERATE'
-                    
-                    # Generate status flags
-                    status_flags = []
-                    if is_debris:
-                        status_flags.append('DEBRIS_CONFIRMED')
-                    if altitude < 300:
-                        status_flags.append('LOW_ALTITUDE')
-                    if debris_prob > 0.5:
-                        status_flags.append('HIGH_COLLISION_RISK')
-                    
-                    # Generate threat description
-                    threat_type = 'Unknown'
-                    eta = 'Unknown'
-                    
-                    if altitude < 250:
-                        threat_type = 'Immediate Reentry Risk'
-                        eta = '< 24 hours'
-                    elif altitude < 400:
-                        threat_type = 'Atmospheric Decay'
-                        eta = '1-7 days'
-                    elif is_debris and debris_prob > 0.6:
-                        threat_type = 'Collision Hazard'
-                        eta = 'Ongoing'
-                    elif debris_prob > 0.5:
-                        threat_type = 'Orbital Instability'
-                        eta = '1-30 days'
-                    else:
-                        threat_type = 'Monitoring Required'
-                        eta = 'Ongoing'
-                    
-                    # Generate satellite name/designation
-                    sat_name = f"SAT-{idx:04d}"
-                    if is_debris:
-                        sat_name = f"DEBRIS-{idx:04d}"
-                    elif altitude > 35000:
-                        sat_name = f"GEO-{idx:04d}"
-                    elif altitude > 2000:
-                        sat_name = f"MEO-{idx:04d}"
-                    else:
-                        sat_name = f"LEO-{idx:04d}"
-                    
-                    high_risk_satellite = {
-                        'id': int(idx),
-                        'name': sat_name,
-                        'threat_level': threat_level,
-                        'risk_level': threat_level,  # For compatibility
-                        'debris_probability': round(debris_prob * 100, 2),
-                        'is_debris': is_debris,
-                        'status': 'DEBRIS' if is_debris else 'TRACKED',
-                        'threat_type': threat_type,
-                        'eta': eta,
-                        'altitude': altitude,
-                        'inclination': float(row.get('inclination', 0)),
-                        'position': {
-                            'altitude': altitude,
-                            'inclination': float(row.get('inclination', 0)),
-                            'x': float(row.get('pos_x', 0)),
-                            'y': float(row.get('pos_y', 0)),
-                            'z': float(row.get('pos_z', 0))
-                        },
-                        'status_flags': status_flags,
-                        'last_tracked': datetime.now().isoformat(),
-                        'priority_score': round(debris_prob * 100 + (1000 - altitude) / 10, 2)
-                    }
-                    
-                    high_risk_satellites.append(high_risk_satellite)
-        
-        # Sort by priority score (highest risk first)
-        high_risk_satellites.sort(key=lambda x: x['priority_score'], reverse=True)
-        
-        return jsonify({
-            'success': True,
-            'total_analyzed': int(len(features_df)),
-            'high_risk_count': len(high_risk_satellites),
-            'satellites': high_risk_satellites,
-            'analysis_timestamp': datetime.now().isoformat(),
-            'threat_summary': {
-                'critical': len([s for s in high_risk_satellites if s['threat_level'] == 'CRITICAL']),
-                'high': len([s for s in high_risk_satellites if s['threat_level'] == 'HIGH']),
-                'elevated': len([s for s in high_risk_satellites if s['threat_level'] == 'ELEVATED']),
-                'moderate': len([s for s in high_risk_satellites if s['threat_level'] == 'MODERATE'])
-            }
-        })
+        return jsonify(payload)
         
     except Exception as e:
         print(f"High-risk satellites error: {e}")
@@ -1242,13 +1304,28 @@ def get_dashboard_charts():
 
 @app.route('/api/charts/collision-risk')
 def get_collision_risk_chart():
-    """Get collision risk timeline chart"""
+    """Get collision risk timeline chart and telemetry dataset"""
     try:
         viz = DataVisualization()
         chart = viz.create_collision_risk_timeline()
+        _, collision_data = viz.load_real_data()
+        
+        timeline = []
+        for _, row in collision_data.iterrows():
+            ts = row['timestamp']
+            ts_str = ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+            timeline.append({
+                'timestamp': ts_str,
+                'collision_probability': float(row.get('collision_probability', 0.0)),
+                'high_risk_count': int(row.get('high_risk_count', 0)),
+                'total_objects': int(row.get('total_objects', 0)),
+                'prediction_accuracy': float(row.get('prediction_accuracy', 0.987))
+            })
+            
         return jsonify({
             'success': True,
-            'chart': chart
+            'chart': chart,
+            'timeline': timeline
         })
     except Exception as e:
         return jsonify({

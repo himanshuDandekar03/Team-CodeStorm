@@ -594,14 +594,16 @@
             backdrop-filter: blur(10px);
             z-index: 2000;
             opacity: 0;
+            pointer-events: none;
             transition: opacity 0.3s ease;
         }
 
         .modal.show {
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
-            opacity: 1;
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
         .modal-content {
@@ -1076,10 +1078,14 @@
                 <!-- Enhanced Data Visualizations -->
                 <div class="grid grid-2" style="margin-top: 2rem;">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <h3 class="card-title">Collision Risk Analysis</h3>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <button id="btn-collision-telemetry" class="btn btn-sm btn-primary" onclick="switchCollisionRiskView('telemetry')" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 4px;">Telemetry</button>
+                                <button id="btn-collision-interactive" class="btn btn-sm btn-outline" onclick="switchCollisionRiskView('interactive')" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border-radius: 4px;">Interactive</button>
+                            </div>
                         </div>
-                        <div id="collision-risk-chart" style="height: 400px;"></div>
+                        <div id="collision-risk-chart" style="min-height: 400px;"></div>
                     </div>
 
                     <div class="card">
@@ -1676,7 +1682,10 @@
                             High-precision close-approach screening with cKDTree spatial filter, golden-section TCA refinement, and RTN impulsive avoidance maneuvers.
                         </p>
                     </div>
-                    <div style="display: flex; gap: 0.75rem;">
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline" style="border: 1px solid var(--accent-color); color: var(--accent-color);" onclick="loadSyntheticScenario()">
+                            <i class="fas fa-flask"></i> Synthetic Conjunction Test
+                        </button>
                         <button class="btn btn-secondary" onclick="loadConjunctionsData()">
                             <i class="fas fa-sync"></i> Refresh Events
                         </button>
@@ -2037,12 +2046,131 @@
         </div>
     </div>
 
+    <!-- Collision Avoidance Maneuver & Explainability Modal -->
+    <div id="avoidance-modal" class="modal">
+        <div class="modal-content" style="max-width: 950px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title" id="avoidance-modal-title">
+                        <i class="fas fa-shield-alt" style="color: var(--accent-color); margin-right: 0.5rem;"></i>
+                        Collision Avoidance Solution & Explainability
+                    </h2>
+                    <span id="avoidance-scenario-badge" class="badge" style="background: rgba(0, 243, 255, 0.15); color: var(--accent-color); font-size: 0.75rem; border: 1px solid var(--accent-color); padding: 0.2rem 0.5rem; border-radius: 4px;">OPERATIONAL CONJUNCTION</span>
+                </div>
+                <button class="close-btn" onclick="closeAvoidanceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Simulation Disclaimer -->
+            <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning-color); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--warning-color);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>SIMULATION / RESEARCH GRADE:</strong> TLE-derived and synthetic estimates. Not calibrated for operational flight execution without Conjunction Data Messages (CDMs) and flight dynamics officer verification.
+            </div>
+
+            <!-- Original Conjunction Card -->
+            <div class="card" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1rem;">
+                <h4 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1rem;">Original Conjunction Geometry</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+                    <div><span style="color: var(--text-secondary);">Primary:</span> <strong id="av-prim-name">-</strong> (<span id="av-prim-norad">NORAD -</span>)</div>
+                    <div><span style="color: var(--text-secondary);">Secondary:</span> <strong id="av-sec-name">-</strong> (<span id="av-sec-norad">NORAD -</span>)</div>
+                    <div><span style="color: var(--text-secondary);">Original TCA:</span> <strong id="av-orig-tca" style="font-family: monospace;">-</strong></div>
+                    <div><span style="color: var(--text-secondary);">Original Miss:</span> <strong id="av-orig-miss" style="color: var(--danger-color); font-size: 1.05rem;">- km</strong></div>
+                    <div><span style="color: var(--text-secondary);">Data Freshness:</span> <span id="av-data-freshness">-</span></div>
+                    <div><span style="color: var(--text-secondary);">Covariance:</span> <span id="av-cov-status" style="font-family: monospace;">-</span></div>
+                </div>
+            </div>
+
+            <!-- Interactive Optimizer Controls -->
+            <div class="card" style="margin-bottom: 1.5rem; background: rgba(0, 243, 255, 0.03); border: 1px solid rgba(0, 243, 255, 0.2); padding: 1rem;">
+                <h4 style="color: var(--accent-color); margin-bottom: 0.75rem; font-size: 1rem;">Interactive Maneuver Planner Constraints</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Target Safety Miss (km):</label>
+                        <input type="number" id="av-input-target-miss" value="25.0" step="5" min="5" max="100" class="form-control" style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Lead Time Before TCA:</label>
+                        <select id="av-input-lead-time" class="form-control" style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; border-radius: 4px;">
+                            <option value="3.0">3.0 hours (Short lead)</option>
+                            <option value="6.0" selected>6.0 hours (Standard lead)</option>
+                            <option value="12.0">12.0 hours (Half day)</option>
+                            <option value="24.0">24.0 hours (Full day)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Max ΔV Budget (m/s):</label>
+                        <input type="number" id="av-input-max-dv" value="50.0" step="5" min="1" max="200" class="form-control" style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" style="width: 100%; padding: 0.5rem;" onclick="recalculateAvoidancePlan()">
+                            <i class="fas fa-calculator"></i> Re-Evaluate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Orbit Viewer Container in Modal -->
+            <div class="card" style="margin-bottom: 1.5rem; padding: 0.5rem; background: #000; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.5rem 0.25rem;">
+                    <h5 style="margin: 0; color: var(--text-primary); font-size: 0.9rem;"><i class="fas fa-globe"></i> 3D Maneuver Trajectory Visualization</h5>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                        <span style="color: #00f3ff; margin-right: 0.75rem;">■ Original Primary</span>
+                        <span style="color: #10b981; margin-right: 0.75rem;">■ Modified Post-Burn</span>
+                        <span style="color: #ef4444;">■ Secondary Debris</span>
+                    </div>
+                </div>
+                <div id="avoidance-3d-canvas-container" style="width: 100%; height: 260px; position: relative; background: #020617; border-radius: 4px; overflow: hidden;"></div>
+            </div>
+
+            <!-- Recommended Solution Card -->
+            <div id="avoidance-rec-card" class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--success-color); background: rgba(16, 185, 129, 0.05); padding: 1rem;">
+                <h4 style="color: var(--success-color); margin-bottom: 0.5rem; font-size: 1rem;" id="avoidance-rec-heading">
+                    <i class="fas fa-check-circle"></i> Recommended Feasible Maneuver
+                </h4>
+                <div id="avoidance-rec-details" style="font-size: 0.88rem; line-height: 1.6;">-</div>
+            </div>
+
+            <!-- Evaluated Candidates Table -->
+            <div class="card" style="margin-bottom: 1rem; padding: 1rem;">
+                <div class="card-header" style="padding-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                    <h4 style="color: var(--text-primary); margin: 0; font-size: 0.95rem;">Evaluated Candidate Impulsive Maneuvers</h4>
+                    <span id="avoidance-candidates-count" style="font-size: 0.8rem; color: var(--text-secondary);">-</span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+                                <th style="padding: 0.5rem;">Rank</th>
+                                <th style="padding: 0.5rem;">Direction</th>
+                                <th style="padding: 0.5rem;">Lead Time</th>
+                                <th style="padding: 0.5rem;">Required ΔV</th>
+                                <th style="padding: 0.5rem;">Fuel (kg)</th>
+                                <th style="padding: 0.5rem;">New Miss</th>
+                                <th style="padding: 0.5rem;">Safety</th>
+                                <th style="padding: 0.5rem;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="avoidance-candidates-tbody">
+                            <tr><td colspan="8" style="text-align: center; padding: 1rem;">No candidates evaluated yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="closeAvoidanceModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Alert Container -->
     <div id="alert-container" class="alert"></div>
 
     <!-- JavaScript -->
     <script src="/static/js/dashboard_new.js"></script>
     <script>
+        // Tab switching functionality
         // Tab switching functionality
         function switchToTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => {
@@ -2063,6 +2191,175 @@
                 loadConjunctionsData();
             } else if (tabName === 'spaceweather') {
                 loadSpaceWeatherData();
+            } else if (tabName === 'alerts') {
+                loadHighRiskSatellites();
+            } else if (tabName === 'satellite-selection' && window.dashboard) {
+                window.dashboard.loadSatelliteList();
+            } else if (tabName === 'settings' && window.dashboard) {
+                window.dashboard.loadCacheStatus();
+            } else if (tabName === 'overview' && window.dashboard) {
+                window.dashboard.viewHighRiskSatellites();
+            }
+        }
+
+        async function loadHighRiskSatellites() {
+            try {
+                if (window.dashboard && typeof window.dashboard.loadHighRiskSatellites === 'function') {
+                    await window.dashboard.loadHighRiskSatellites();
+                    return;
+                }
+                const res = await fetch('/api/satellites/high-risk');
+                const data = await res.json();
+                if (data && data.success) {
+                    if (window.dashboard && typeof window.dashboard.displayHighRiskSatellitesList === 'function') {
+                        window.dashboard.displayHighRiskSatellitesList(data.satellites, data.threat_summary);
+                    } else {
+                        renderHighRiskSatellitesDirect(data.satellites, data.threat_summary);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading high-risk satellites:", err);
+            }
+        }
+
+        function renderHighRiskSatellitesDirect(satellites, summary) {
+            const listContainer = document.getElementById('high-risk-satellites-list');
+            const alertsContainer = document.getElementById('active-alerts');
+            const riskSummaryContainer = document.getElementById('risk-summary');
+            const collisionWarningsContainer = document.getElementById('collision-warnings');
+            
+            summary = summary || { critical: 0, high: 0, elevated: 0, moderate: 0 };
+            
+            if (listContainer) {
+                if (satellites && satellites.length > 0) {
+                    const satellitesHtml = satellites.slice(0, 20).map((sat) => {
+                        const riskColor = sat.risk_level === 'CRITICAL' ? 'var(--danger-color)' : 
+                                         sat.risk_level === 'HIGH' ? 'var(--warning-color)' : 'var(--accent-color)';
+                        return `
+                            <div class="satellite-item" onclick="selectSatellite(${sat.id})" style="cursor: pointer; border-left: 4px solid ${riskColor};">
+                                <div class="satellite-header">
+                                    <div class="satellite-id">
+                                        ${sat.name || `Satellite #${sat.id}`}
+                                        <small style="color: var(--text-secondary);">(ID: ${sat.id})</small>
+                                    </div>
+                                    <div class="risk-badge risk-${(sat.risk_level || 'low').toLowerCase()}">${sat.risk_level || 'UNKNOWN'}</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; font-size: 0.9rem; margin-top: 0.5rem;">
+                                    <div>
+                                        <strong>Type:</strong> ${sat.is_debris ? 'Debris' : 'Active'}
+                                        <br><strong>Alt:</strong> ${sat.altitude ? Number(sat.altitude).toFixed(0) : 'N/A'} km
+                                    </div>
+                                    <div>
+                                        <strong>Risk:</strong> ${sat.debris_probability ? Number(sat.debris_probability).toFixed(1) : 'N/A'}%
+                                        <br><strong>Status:</strong> ${sat.status || 'Unknown'}
+                                    </div>
+                                    <div>
+                                        <strong>Threat:</strong> ${sat.threat_type || 'Orbital Decay'}
+                                        <br><strong>ETA:</strong> ${sat.eta || 'Unknown'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    listContainer.innerHTML = `
+                        <div style="margin-bottom: 1rem;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                                <div style="text-align: center; padding: 1rem; background: rgba(220, 53, 69, 0.1); border-radius: 8px;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger-color);">${summary.critical || 0}</div>
+                                    <div style="font-size: 0.9rem;">Critical Risk</div>
+                                </div>
+                                <div style="text-align: center; padding: 1rem; background: rgba(255, 193, 7, 0.1); border-radius: 8px;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning-color);">${summary.high || 0}</div>
+                                    <div style="font-size: 0.9rem;">High Risk</div>
+                                </div>
+                                <div style="text-align: center; padding: 1rem; background: rgba(0, 123, 255, 0.1); border-radius: 8px;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${satellites.length}</div>
+                                    <div style="font-size: 0.9rem;">Total Tracked</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            ${satellitesHtml}
+                        </div>
+                    `;
+                } else {
+                    listContainer.innerHTML = '<div style="text-align: center; color: var(--success-color); padding: 2rem;">No high-risk satellites detected</div>';
+                }
+            }
+
+            if (alertsContainer) {
+                const criticalCount = summary.critical || 0;
+                const highCount = summary.high || 0;
+                if (criticalCount > 0 || highCount > 0) {
+                    alertsContainer.innerHTML = `
+                        <div style="margin-bottom: 1rem;">
+                            ${criticalCount > 0 ? `
+                                <div style="padding: 1rem; background: rgba(220, 53, 69, 0.1); border-left: 4px solid var(--danger-color); border-radius: 4px; margin-bottom: 0.5rem;">
+                                    <div style="font-weight: 600; color: var(--danger-color);">CRITICAL ALERT</div>
+                                    <div style="font-size: 0.9rem;">${criticalCount} satellites at critical risk level</div>
+                                </div>
+                            ` : ''}
+                            ${highCount > 0 ? `
+                                <div style="padding: 1rem; background: rgba(255, 193, 7, 0.1); border-left: 4px solid var(--warning-color); border-radius: 4px;">
+                                    <div style="font-weight: 600; color: var(--warning-color);">HIGH RISK</div>
+                                    <div style="font-size: 0.9rem;">${highCount} satellites at high risk level</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    alertsContainer.innerHTML = '<div style="text-align: center; color: var(--success-color); padding: 2rem;">No active alerts</div>';
+                }
+            }
+
+            if (riskSummaryContainer) {
+                const totalRisk = satellites ? satellites.length : 0;
+                const overallRisk = totalRisk > 10 ? 'HIGH' : totalRisk > 5 ? 'MEDIUM' : 'LOW';
+                const riskColor = overallRisk === 'HIGH' ? 'var(--danger-color)' : 
+                                 overallRisk === 'MEDIUM' ? 'var(--warning-color)' : 'var(--success-color)';
+                riskSummaryContainer.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: ${riskColor};">${overallRisk}</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">Overall Risk Level</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Risk Assessment:</span>
+                            <span style="color: ${riskColor}; font-weight: 600;">${overallRisk}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Tracked Objects:</span>
+                            <span>${totalRisk}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Last Analysis:</span>
+                            <span>${new Date().toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (collisionWarningsContainer) {
+                const highRiskSats = (satellites || []).filter(s => s.risk_level === 'CRITICAL' || s.risk_level === 'HIGH');
+                if (highRiskSats.length > 0) {
+                    const warningsHtml = highRiskSats.slice(0, 5).map(sat => `
+                        <div style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${sat.name || `Satellite #${sat.id}`}</strong>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                        Risk: ${sat.debris_probability ? Number(sat.debris_probability).toFixed(1) : 'N/A'}% | Alt: ${sat.altitude ? Number(sat.altitude).toFixed(0) : 'N/A'} km
+                                    </div>
+                                </div>
+                                <span class="risk-badge risk-${(sat.risk_level || 'high').toLowerCase()}">${sat.risk_level || 'HIGH'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    collisionWarningsContainer.innerHTML = warningsHtml;
+                } else {
+                    collisionWarningsContainer.innerHTML = '<div style="text-align: center; color: var(--success-color); padding: 2rem;">No collision warnings</div>';
+                }
             }
         }
 
@@ -2188,6 +2485,35 @@
             }
         }
 
+        window.collisionRiskChartState = { chart: null, timeline: null, view: 'telemetry' };
+
+        function switchCollisionRiskView(view) {
+            window.collisionRiskChartState.view = view;
+            const state = window.collisionRiskChartState;
+            const telemetryBtn = document.getElementById('btn-collision-telemetry');
+            const interactiveBtn = document.getElementById('btn-collision-interactive');
+            const container = document.getElementById('collision-risk-chart');
+            if (!container) return;
+
+            if (view === 'interactive') {
+                if (telemetryBtn) { telemetryBtn.className = 'btn btn-sm btn-outline'; }
+                if (interactiveBtn) { interactiveBtn.className = 'btn btn-sm btn-primary'; }
+                renderCollisionRiskPlotly(state.timeline);
+            } else {
+                if (telemetryBtn) { telemetryBtn.className = 'btn btn-sm btn-primary'; }
+                if (interactiveBtn) { interactiveBtn.className = 'btn btn-sm btn-outline'; }
+                if (state.chart) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 0.5rem; display: flex; justify-content: center; align-items: center;">
+                            <img src="${state.chart}" alt="Collision Risk Analysis" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+                        </div>
+                    `;
+                } else {
+                    renderCollisionRiskPlotly(state.timeline);
+                }
+            }
+        }
+
         async function createRealTimeCollisionChart() {
             try {
                 // Fetch real collision risk data from API
@@ -2195,13 +2521,12 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Use the base64 image from Python matplotlib
-                    const chartContainer = document.getElementById('collision-risk-chart');
-                    chartContainer.innerHTML = `
-                        <div style="text-align: center; padding: 1rem;">
-                            <img src="${data.chart}" alt="Collision Risk Analysis" style="max-width: 100%; height: auto; border-radius: 8px;">
-                        </div>
-                    `;
+                    window.collisionRiskChartState = {
+                        chart: data.chart,
+                        timeline: data.timeline || [],
+                        view: 'telemetry'
+                    };
+                    switchCollisionRiskView('telemetry');
                 } else {
                     // Fallback to Plotly if API fails
                     await createCollisionRiskChartPlotly();
@@ -2212,19 +2537,22 @@
             }
         }
 
-        async function createCollisionRiskChartPlotly() {
-            // Enhanced real-time collision risk visualization
-            const timeData = [];
-            const riskData = [];
-            const currentTime = new Date();
-            
-            for (let i = 0; i < 24; i++) {
-                const time = new Date(currentTime.getTime() - (23 - i) * 60 * 60 * 1000);
-                timeData.push(time.toISOString());
-                // More realistic risk calculation based on actual orbital mechanics
-                const baseRisk = 0.15 + Math.sin(i * 0.5) * 0.1;
-                const noise = (Math.random() - 0.5) * 0.05;
-                riskData.push(Math.max(0.01, baseRisk + noise));
+        function renderCollisionRiskPlotly(timeline) {
+            let timeData = [];
+            let riskData = [];
+
+            if (timeline && timeline.length > 0) {
+                timeData = timeline.map(pt => pt.timestamp);
+                riskData = timeline.map(pt => pt.collision_probability);
+            } else {
+                const currentTime = new Date();
+                for (let i = 0; i < 24; i++) {
+                    const time = new Date(currentTime.getTime() - (23 - i) * 60 * 60 * 1000);
+                    timeData.push(time.toISOString());
+                    const baseRisk = 0.04 + Math.sin(i * 0.4) * 0.025;
+                    const noise = (Math.random() - 0.5) * 0.01;
+                    riskData.push(Math.max(0.015, baseRisk + noise));
+                }
             }
 
             const trace = {
@@ -2232,43 +2560,84 @@
                 y: riskData,
                 type: 'scatter',
                 mode: 'lines+markers',
-                name: 'Collision Risk %',
+                name: 'Collision Probability (%)',
                 line: { 
-                    color: '#ff6b6b', 
+                    color: '#ff4d6d', 
                     width: 3,
                     shape: 'spline'
                 },
                 marker: { 
-                    size: 8, 
-                    color: '#ff6b6b',
-                    symbol: 'circle'
+                    size: 6, 
+                    color: '#ff4d6d',
+                    symbol: 'circle',
+                    line: { color: '#ffffff', width: 1 }
                 },
-                fill: 'tonexty',
-                fillcolor: 'rgba(255, 107, 107, 0.1)'
+                fill: 'tozeroy',
+                fillcolor: 'rgba(255, 77, 109, 0.15)',
+                hovertemplate: '<b>Time:</b> %{x}<br><b>Risk:</b> %{y:.3f}%<extra></extra>'
             };
 
             const layout = {
                 title: {
-                    text: 'Real-time Collision Risk Analysis',
-                    font: { color: '#f0f6fc', size: 16 }
+                    text: 'Real-Time Orbital Collision Risk Horizon',
+                    font: { color: '#f0f6fc', size: 15 }
                 },
                 xaxis: { 
-                    title: 'Time (Last 24 Hours)', 
-                    color: '#f0f6fc',
-                    gridcolor: '#30363d'
+                    title: 'Timeline (UTC)', 
+                    color: '#8b949e',
+                    gridcolor: '#30363d',
+                    tickfont: { color: '#c9d1d9' }
                 },
                 yaxis: { 
                     title: 'Risk Probability (%)', 
-                    color: '#f0f6fc',
-                    gridcolor: '#30363d'
+                    color: '#8b949e',
+                    gridcolor: '#30363d',
+                    tickfont: { color: '#c9d1d9' }
                 },
+                shapes: [
+                    {
+                        type: 'line',
+                        xref: 'paper',
+                        x0: 0,
+                        x1: 1,
+                        y0: 0.10,
+                        y1: 0.10,
+                        line: { color: '#dc3545', width: 1.5, dash: 'dash' }
+                    },
+                    {
+                        type: 'line',
+                        xref: 'paper',
+                        x0: 0,
+                        x1: 1,
+                        y0: 0.05,
+                        y1: 0.05,
+                        line: { color: '#ffc107', width: 1.5, dash: 'dot' }
+                    }
+                ],
+                annotations: [
+                    {
+                        xref: 'paper',
+                        yref: 'y',
+                        x: 0.98,
+                        y: 0.10,
+                        text: 'Critical Alert (0.10%)',
+                        showarrow: false,
+                        font: { color: '#dc3545', size: 10 },
+                        xanchor: 'right',
+                        yanchor: 'bottom'
+                    }
+                ],
                 plot_bgcolor: 'rgba(0,0,0,0)',
                 paper_bgcolor: 'rgba(0,0,0,0)',
                 font: { color: '#f0f6fc' },
-                margin: { t: 50, r: 20, b: 50, l: 60 }
+                margin: { t: 50, r: 25, b: 50, l: 60 }
             };
 
             Plotly.newPlot('collision-risk-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        async function createCollisionRiskChartPlotly() {
+            renderCollisionRiskPlotly(null);
         }
 
         async function createOrbitalDistributionChart() {
@@ -2645,6 +3014,9 @@
             
             // Load visualizations after a short delay for better UX
             setTimeout(initializeDataVisualizations, 1000);
+
+            // Pre-load high-risk satellites and alerts so Risk Alerts tab is instant
+            setTimeout(loadHighRiskSatellites, 1200);
             
             // Setup periodic updates
             setInterval(updateSystemStats, 30000); // Update stats every 30 seconds
@@ -2653,6 +3025,7 @@
                 createRealTimeCollisionChart();
                 createTrajectoryConfidenceChart();
                 createAlertsTimeline();
+                loadHighRiskSatellites();
             }, 120000);
         });
 
@@ -2980,29 +3353,325 @@
             }
         }
 
+        let currentPlanEvent = null;
+        let avoidanceRenderer = null;
+        let avoidanceAnimationId = null;
+
+        function closeAvoidanceModal() {
+            const m = document.getElementById('avoidance-modal');
+            if (m) {
+                m.classList.remove('show');
+                m.style.display = 'none';
+            }
+            if (avoidanceAnimationId) {
+                cancelAnimationFrame(avoidanceAnimationId);
+                avoidanceAnimationId = null;
+            }
+            if (avoidanceRenderer) {
+                try {
+                    avoidanceRenderer.dispose();
+                } catch(e) {}
+                avoidanceRenderer = null;
+            }
+        }
+
         async function planManeuverForEvent(idx) {
             try {
                 const event = cachedConjunctions[idx];
                 if (!event) return;
+                currentPlanEvent = event;
+                const targetMiss = parseFloat(document.getElementById('av-input-target-miss')?.value || 25.0);
+                const leadTime = parseFloat(document.getElementById('av-input-lead-time')?.value || 6.0);
+                const maxDv = parseFloat(document.getElementById('av-input-max-dv')?.value || 50.0);
 
+                showAlert('Computing multi-candidate collision avoidance options...', 'info');
                 const res = await fetch('/api/avoidance/plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ event_index: idx, lead_time_hours: 6.0, target_miss_km: 50.0 })
+                    body: JSON.stringify({
+                        event_index: idx,
+                        lead_time_hours: leadTime,
+                        target_miss_km: targetMiss,
+                        max_delta_v_m_s: maxDv
+                    })
                 });
                 const data = await res.json();
                 if (!data.success) {
                     showAlert(data.error || 'Failed to plan maneuver', 'error');
                     return;
                 }
-
-                const rec = data.recommended;
-                alert(`🚀 COLLISION AVOIDANCE SOLUTION\n\nTarget Pair: ${event.primary_name} ↔ ${event.secondary_name}\nTCA: ${new Date(event.tca).toUTCString()}\n\nRecommended: ${rec.direction_full} Burn\nRequired ΔV: ${rec.delta_v_m_s.toFixed(2)} m/s\nFuel Cost: ≈ ${rec.fuel_kg.toFixed(2)} kg\nResulting Miss Distance: ${rec.new_miss_km.toFixed(1)} km\nManeuver Time: ${new Date(rec.maneuver_time).toUTCString()}`);
+                displayAvoidancePlanModal(data, false);
             } catch (err) {
                 console.error('Error planning avoidance maneuver:', err);
                 showAlert('Error computing avoidance burn', 'error');
             }
         }
+
+        async function loadSyntheticScenario() {
+            try {
+                showAlert('Generating reproducible synthetic conjunction scenario...', 'info');
+                const res = await fetch('/api/avoidance/synthetic-scenario');
+                const data = await res.json();
+                if (!data.success) {
+                    showAlert(data.error || 'Failed to generate synthetic scenario', 'error');
+                    return;
+                }
+                currentPlanEvent = data.conjunction;
+                displayAvoidancePlanModal(data, true);
+                showAlert('Synthetic conjunction scenario loaded successfully!', 'success');
+            } catch (err) {
+                console.error('Error loading synthetic scenario:', err);
+                showAlert('Failed to load synthetic conjunction scenario', 'error');
+            }
+        }
+
+        async function recalculateAvoidancePlan() {
+            if (!currentPlanEvent) {
+                showAlert('No active conjunction event selected', 'warning');
+                return;
+            }
+            try {
+                const targetMiss = parseFloat(document.getElementById('av-input-target-miss').value || 25.0);
+                const leadTime = parseFloat(document.getElementById('av-input-lead-time').value || 6.0);
+                const maxDv = parseFloat(document.getElementById('av-input-max-dv').value || 50.0);
+
+                showAlert('Re-evaluating avoidance maneuvers with updated constraints...', 'info');
+                const res = await fetch('/api/avoidance/plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conjunction: currentPlanEvent,
+                        lead_time_hours: leadTime,
+                        target_miss_km: targetMiss,
+                        max_delta_v_m_s: maxDv
+                    })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    showAlert(data.error || 'Re-evaluation failed', 'error');
+                    return;
+                }
+                const badge = document.getElementById('avoidance-scenario-badge');
+                const isSyn = badge && badge.textContent.includes('SYNTHETIC');
+                displayAvoidancePlanModal(data, isSyn);
+            } catch (err) {
+                console.error('Re-evaluation error:', err);
+                showAlert('Failed to re-evaluate plan', 'error');
+            }
+        }
+
+        function displayAvoidancePlanModal(data, isSynthetic) {
+            const modal = document.getElementById('avoidance-modal');
+            if (!modal) return;
+
+            const conj = data.conjunction || {};
+            const badge = document.getElementById('avoidance-scenario-badge');
+            if (badge) {
+                badge.textContent = isSynthetic ? 'SYNTHETIC TEST SCENARIO' : 'OPERATIONAL CATALOG CONJUNCTION';
+                badge.style.color = isSynthetic ? 'var(--warning-color)' : 'var(--accent-color)';
+                badge.style.borderColor = isSynthetic ? 'var(--warning-color)' : 'var(--accent-color)';
+            }
+
+            document.getElementById('av-prim-name').textContent = conj.primary_name || 'PRIMARY';
+            document.getElementById('av-sec-name').textContent = conj.secondary_name || 'SECONDARY';
+            document.getElementById('av-prim-norad').textContent = 'NORAD ' + (conj.primary_norad || 'N/A');
+            document.getElementById('av-sec-norad').textContent = 'NORAD ' + (conj.secondary_norad || 'N/A');
+            document.getElementById('av-orig-tca').textContent = conj.tca ? new Date(conj.tca).toISOString().replace('T', ' ').substring(0, 19) + ' UTC' : '-';
+            document.getElementById('av-orig-miss').textContent = (conj.miss_distance_km != null ? conj.miss_distance_km.toFixed(2) : '-') + ' km';
+            document.getElementById('av-data-freshness').textContent = conj.max_epoch_age_days != null ? `${conj.max_epoch_age_days}d (${conj.is_stale ? 'STALE' : 'FRESH'})` : 'FRESH';
+            document.getElementById('av-cov-status').textContent = conj.pc_status || 'UNAVAILABLE (No Covariance)';
+
+            // Recommended card
+            const recCard = document.getElementById('avoidance-rec-card');
+            const recHeading = document.getElementById('avoidance-rec-heading');
+            const recDetails = document.getElementById('avoidance-rec-details');
+            const rec = data.recommended;
+
+            if (rec && data.feasibility_status === 'FEASIBLE') {
+                recCard.style.borderLeftColor = 'var(--success-color)';
+                recCard.style.background = 'rgba(16, 185, 129, 0.05)';
+                recHeading.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> Recommended Maneuver: ${rec.direction_full}`;
+                recHeading.style.color = 'var(--success-color)';
+                recDetails.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
+                        <div><strong>ΔV Magnitude:</strong> ${rec.delta_v_m_s.toFixed(2)} m/s</div>
+                        <div><strong>Propellant Cost:</strong> ≈ ${rec.fuel_kg.toFixed(2)} kg</div>
+                        <div><strong>Post-Burn Miss:</strong> <span style="color: var(--success-color); font-weight: bold;">${rec.new_miss_km.toFixed(2)} km</span></div>
+                        <div><strong>Safety Margin:</strong> +${rec.safety_margin_km.toFixed(2)} km</div>
+                        <div><strong>Burn Time:</strong> ${new Date(rec.maneuver_time).toISOString().replace('T', ' ').substring(0, 16)} UTC (T-${rec.lead_time_hours}h)</div>
+                        <div><strong>Propagation:</strong> ${rec.propagation_method}</div>
+                    </div>
+                    <div style="margin-top: 0.75rem; font-size: 0.82rem; color: var(--text-secondary);">
+                        <em>${data.selection_rationale || ''}</em>
+                    </div>
+                `;
+            } else {
+                recCard.style.borderLeftColor = 'var(--danger-color)';
+                recCard.style.background = 'rgba(239, 68, 68, 0.05)';
+                recHeading.innerHTML = `<i class="fas fa-times-circle" style="color: var(--danger-color);"></i> No Feasible Candidate Found`;
+                recHeading.style.color = 'var(--danger-color)';
+                recDetails.innerHTML = `
+                    <p style="color: var(--danger-color); margin: 0.5rem 0;">
+                        None of the evaluated candidates satisfied the target safety threshold (${document.getElementById('av-input-target-miss')?.value || 25} km) within the configured ΔV budget.
+                    </p>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                        <em>${data.selection_rationale || ''}</em>
+                    </div>
+                `;
+            }
+
+            // Candidates Table
+            const countSpan = document.getElementById('avoidance-candidates-count');
+            if (countSpan) countSpan.textContent = `${data.feasible_count || 0} feasible / ${data.candidate_count || 0} evaluated`;
+
+            const tbody = document.getElementById('avoidance-candidates-tbody');
+            const options = data.maneuver_options || [];
+            if (options.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 1rem;">No options returned.</td></tr>`;
+            } else {
+                tbody.innerHTML = options.map(opt => {
+                    const isRec = rec && opt.direction === rec.direction && Math.abs(opt.lead_time_hours - rec.lead_time_hours) < 0.1;
+                    const statusBadge = opt.is_feasible
+                        ? `<span style="color: var(--success-color); font-weight: 600;">FEASIBLE</span>`
+                        : `<span style="color: var(--danger-color);" title="${opt.rejection_reason || ''}">REJECTED</span>`;
+                    const safetyBadge = opt.safety_constraint_met
+                        ? `<span style="color: var(--success-color);">PASS</span>`
+                        : `<span style="color: var(--danger-color);">FAIL</span>`;
+                    return `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); ${isRec ? 'background: rgba(16, 185, 129, 0.1);' : ''}">
+                            <td style="padding: 0.5rem; font-weight: bold;">${isRec ? '⭐ ' + opt.rank : opt.rank}</td>
+                            <td style="padding: 0.5rem; font-weight: 600;">${opt.direction_full}</td>
+                            <td style="padding: 0.5rem; color: var(--text-secondary);">T-${opt.lead_time_hours}h</td>
+                            <td style="padding: 0.5rem; font-family: monospace;">${opt.delta_v_m_s.toFixed(2)} m/s</td>
+                            <td style="padding: 0.5rem; font-family: monospace;">${opt.fuel_kg.toFixed(2)} kg</td>
+                            <td style="padding: 0.5rem; font-weight: bold; color: ${opt.new_miss_km >= 25 ? 'var(--success-color)' : 'var(--warning-color)'};">${opt.new_miss_km.toFixed(1)} km</td>
+                            <td style="padding: 0.5rem;">${safetyBadge}</td>
+                            <td style="padding: 0.5rem;">${statusBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            modal.style.display = 'flex';
+            modal.classList.add('show');
+
+            // Render 3D Trajectory in Modal
+            setTimeout(() => {
+                initAvoidance3DScene(conj, rec);
+            }, 120);
+        }
+
+        function initAvoidance3DScene(conj, rec) {
+            try {
+                const container = document.getElementById('avoidance-3d-canvas-container');
+                if (!container || !window.THREE) return;
+
+                if (avoidanceAnimationId) {
+                    cancelAnimationFrame(avoidanceAnimationId);
+                    avoidanceAnimationId = null;
+                }
+                if (avoidanceRenderer) {
+                    try {
+                        avoidanceRenderer.dispose();
+                    } catch(e) {}
+                    avoidanceRenderer = null;
+                }
+                container.innerHTML = '';
+
+                const width = container.clientWidth || 800;
+                const height = container.clientHeight || 260;
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x020617);
+
+                const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+                camera.position.set(0, -3.2, 2.4);
+
+                avoidanceRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                avoidanceRenderer.setSize(width, height);
+                container.appendChild(avoidanceRenderer.domElement);
+
+                scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                dirLight.position.set(5, 5, 5);
+                scene.add(dirLight);
+
+                // Earth
+                const earthGeo = new THREE.SphereGeometry(1.0, 24, 24);
+                const earthMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, wireframe: true });
+                const earth = new THREE.Mesh(earthGeo, earthMat);
+                scene.add(earth);
+
+                function createOrbitLine(radius, inclinationRad, color, isDashed) {
+                    const pts = [];
+                    const segments = 64;
+                    for (let i = 0; i <= segments; i++) {
+                        const theta = (i / segments) * Math.PI * 2;
+                        const x = radius * Math.cos(theta);
+                        const y = radius * Math.sin(theta) * Math.cos(inclinationRad);
+                        const z = radius * Math.sin(theta) * Math.sin(inclinationRad);
+                        pts.push(new THREE.Vector3(x, y, z));
+                    }
+                    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+                    const mat = isDashed
+                        ? new THREE.LineDashedMaterial({ color: color, dashSize: 0.05, gapSize: 0.03 })
+                        : new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+                    const line = new THREE.Line(geom, mat);
+                    if (isDashed) line.computeLineDistances();
+                    return line;
+                }
+
+                // Primary original orbit (Cyan)
+                const priOrbit = createOrbitLine(1.28, 0.2, 0x00f3ff, false);
+                scene.add(priOrbit);
+
+                // Secondary orbit (Red)
+                const secOrbit = createOrbitLine(1.28, 0.65, 0xef4444, false);
+                scene.add(secOrbit);
+
+                // Modified post-burn primary orbit (Green)
+                const modOrbit = createOrbitLine(1.35, 0.22, 0x10b981, true);
+                scene.add(modOrbit);
+
+                // TCA Marker
+                const tcaGeo = new THREE.SphereGeometry(0.04, 12, 12);
+                const tcaMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+                const tcaMarker = new THREE.Mesh(tcaGeo, tcaMat);
+                tcaMarker.position.set(1.28, 0, 0);
+                scene.add(tcaMarker);
+
+                camera.lookAt(0, 0, 0);
+
+                function animate() {
+                    const m = document.getElementById('avoidance-modal');
+                    if (!m || !m.classList.contains('show')) return;
+                    avoidanceAnimationId = requestAnimationFrame(animate);
+                    earth.rotation.z += 0.002;
+                    scene.rotation.z += 0.001;
+                    if (avoidanceRenderer) {
+                        avoidanceRenderer.render(scene, camera);
+                    }
+                }
+                animate();
+            } catch (err) {
+                console.warn('Could not initialize avoidance 3D scene:', err);
+            }
+        }
+
+        // Global backdrop and keyboard dismissal
+        window.addEventListener('click', function(e) {
+            const m = document.getElementById('avoidance-modal');
+            if (m && e.target === m) {
+                closeAvoidanceModal();
+            }
+        });
+
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAvoidanceModal();
+                if (typeof closeSatelliteModal === 'function') closeSatelliteModal();
+            }
+        });
 
         async function triggerOnDemandScreening() {
             showAlert('Running 24h pairwise conjunction screening across catalogue...', 'info');
