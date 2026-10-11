@@ -3,630 +3,1571 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fuel Optimization Dashboard - NovaGen</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_new.css') }}">
+    <title>Fuel Optimization Engine - Astraeus</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        .fuel-dashboard {
-            padding: 2rem;
-            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #070a12;
+            --bg-secondary: #0c1222;
+            --bg-card: rgba(15, 23, 42, 0.88);
+            --bg-card-hover: rgba(22, 34, 60, 0.95);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(0, 243, 255, 0.35);
+            --accent-cyan: #00f3ff;
+            --accent-emerald: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(circle at 50% 0%, #111a33 0%, var(--bg-primary) 70%);
+            color: var(--text-primary);
             min-height: 100vh;
-            color: white;
+            line-height: 1.5;
+            overflow-x: hidden;
         }
-        
-        .fuel-header {
-            text-align: center;
-            margin-bottom: 3rem;
+
+        /* Top Navigation Bar */
+        .top-navbar {
+            background: rgba(7, 10, 18, 0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 0.85rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        .fuel-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, #00ff7f, #4dd0e1);
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.05em;
+        }
+
+        .navbar-brand i {
+            color: var(--accent-cyan);
+            font-size: 1.4rem;
+            filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.6));
+        }
+
+        .navbar-brand span.subtitle {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-left: 0.25rem;
+            padding-left: 0.75rem;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(0, 243, 255, 0.12);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .live-badge {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: var(--accent-emerald);
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-emerald);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.3); }
+        }
+
+        /* Main Container */
+        .fuel-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2rem 2rem 4rem 2rem;
+        }
+
+        /* Hero Header */
+        .hero-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .hero-title h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f8fafc 0%, var(--accent-cyan) 60%, var(--accent-emerald) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        
-        .fuel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
+
+        .hero-title p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 720px;
         }
-        
-        .fuel-card {
-            background: linear-gradient(145deg, #1e1e2e, #2a2a3e);
-            border: 1px solid #333;
-            border-radius: 12px;
+
+        .hero-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            text-align: right;
+            min-width: 130px;
+        }
+
+        .hero-stat-val {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: monospace;
+        }
+
+        .hero-stat-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
             padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            margin-bottom: 1.75rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
+            transition: border-color 0.25s ease;
         }
-        
-        .fuel-card h3 {
-            color: #00ff7f;
-            margin-bottom: 1rem;
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            color: var(--text-primary);
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .card-title i {
+            color: var(--accent-cyan);
+        }
+
+        /* Satellite Selector Hub */
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.3rem;
+            border-radius: 10px;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 243, 255, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        /* Preset Chips */
+        .preset-chips-container {
+            margin-bottom: 1.25rem;
+        }
+
+        .preset-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .preset-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .preset-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.45rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+        }
+
+        .preset-chip:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            transform: translateY(-1px);
+        }
+
+        .preset-chip.active {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(16, 185, 129, 0.2));
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.25);
+        }
+
+        /* Selected Satellite Telemetry Banner */
+        .selected-sat-banner {
+            background: linear-gradient(135deg, rgba(14, 28, 54, 0.75), rgba(7, 18, 38, 0.85));
+            border: 1px solid var(--border-highlight);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .sat-meta-primary {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .sat-meta-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
-        .control-panel {
-            background: linear-gradient(145deg, #1a1a2e, #2d2d4a);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .control-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .input-group label {
-            color: #4dd0e1;
-            font-size: 0.9rem;
-            margin-bottom: 0.3rem;
-        }
-        
-        .input-group input, .input-group select {
-            background: #2a2a3e;
-            border: 1px solid #444;
+
+        .sat-badge-regime {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            font-size: 0.75rem;
+            padding: 0.2rem 0.55rem;
             border-radius: 6px;
-            padding: 0.5rem;
-            color: white;
-            font-size: 0.9rem;
+            font-weight: 600;
         }
-        
-        .input-group input:focus, .input-group select:focus {
-            outline: none;
-            border-color: #00ff7f;
-            box-shadow: 0 0 10px rgba(0,255,127,0.3);
+
+        .sat-meta-sub {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
         }
-        
-        .btn {
-            background: linear-gradient(45deg, #00ff7f, #4dd0e1);
-            border: none;
+
+        .sat-metric-box {
+            background: rgba(0, 0, 0, 0.25);
             border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            color: #000;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,255,127,0.4);
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-        }
-        
-        .metric-card {
-            background: linear-gradient(145deg, #2a2a3e, #1e1e2e);
-            border-radius: 8px;
-            padding: 1rem;
+            padding: 0.65rem 0.85rem;
             text-align: center;
-            border: 1px solid #333;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
-        .metric-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #00ff7f;
-            margin-bottom: 0.25rem;
+
+        .sat-metric-box .val {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: monospace;
         }
-        
-        .metric-label {
-            font-size: 0.8rem;
-            color: #aaa;
+
+        .sat-metric-box .lbl {
+            font-size: 0.72rem;
+            color: var(--text-muted);
             text-transform: uppercase;
         }
-        
-        .chart-container {
-            height: 400px;
-            background: #1e1e2e;
+
+        /* Form Inputs & Controls Grid */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-label span.unit {
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        .form-input, .form-select {
+            background: #090e1a;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            margin-top: 1rem;
+            padding: 0.65rem 0.9rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            width: 100%;
         }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.25);
+            background: #0c1424;
         }
-        
-        .status-running {
-            background: #00ff7f;
-            animation: pulse 2s infinite;
+
+        .form-select option {
+            background: #0d1322;
+            color: #fff;
         }
-        
-        .status-stopped {
-            background: #dc3545;
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald));
+            border: none;
+            border-radius: 9px;
+            padding: 0.8rem 1.6rem;
+            color: #030a14;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(0, 243, 255, 0.25);
         }
-        
-        .status-warning {
-            background: #ffc107;
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(0, 243, 255, 0.45);
         }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
-        
-        .log-container {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            height: 200px;
-            overflow-y: auto;
-            padding: 1rem;
-            font-family: 'Courier New', monospace;
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--accent-rose);
+            border: 1px solid rgba(244, 63, 94, 0.4);
+            box-shadow: none;
+        }
+
+        .btn-danger:hover {
+            background: rgba(244, 63, 94, 0.3);
+            border-color: var(--accent-rose);
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.3);
+        }
+
+        /* Two-Column Layout */
+        .layout-2col {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 1.75rem;
+            margin-bottom: 1.75rem;
+        }
+
+        /* Optimization Results Section */
+        .results-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-summary-box {
+            background: rgba(9, 14, 26, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.1rem;
+            text-align: center;
+        }
+
+        .metric-summary-box.highlight {
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .metric-summary-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--accent-emerald);
+            font-family: monospace;
+            margin-bottom: 0.2rem;
+        }
+
+        .metric-summary-box.highlight .metric-summary-val {
+            color: var(--accent-cyan);
+        }
+
+        .metric-summary-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Maneuver Stages Breakdown */
+        .stages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stage-card {
+            background: rgba(9, 14, 26, 0.6);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 0 8px 8px 0;
+            padding: 0.85rem 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stage-info strong {
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            display: block;
+        }
+
+        .stage-info small {
+            color: var(--text-secondary);
             font-size: 0.8rem;
         }
-        
-        .log-entry {
-            margin-bottom: 0.5rem;
-            padding: 0.25rem;
-            border-radius: 4px;
+
+        .stage-metrics {
+            text-align: right;
+            font-family: monospace;
         }
-        
-        .log-info {
-            color: #4dd0e1;
+
+        .stage-dv {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
         }
-        
-        .log-success {
-            color: #00ff7f;
+
+        .stage-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
         }
-        
-        .log-warning {
-            color: #ffc107;
-        }
-        
-        .log-error {
-            color: #dc3545;
-        }
-        
-        .propulsion-comparison {
+
+        /* Propulsion Comparison Table */
+        .table-responsive {
             overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
         }
-        
+
         .comparison-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        
-        .comparison-table th,
-        .comparison-table td {
-            padding: 0.75rem;
+            font-size: 0.88rem;
             text-align: left;
-            border-bottom: 1px solid #333;
         }
-        
+
         .comparison-table th {
-            background: #2a2a3e;
-            color: #00ff7f;
-            font-weight: bold;
+            background: rgba(22, 34, 60, 0.8);
+            color: var(--accent-cyan);
+            padding: 0.85rem 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
         }
-        
-        .comparison-table tr:hover {
-            background: rgba(0,255,127,0.1);
+
+        .comparison-table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
         }
-        
-        .constellation-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 0.5rem;
-            margin-top: 1rem;
+
+        .comparison-table tr:hover td {
+            background: rgba(0, 243, 255, 0.04);
         }
-        
-        .satellite-card {
-            background: #2a2a3e;
-            border: 1px solid #444;
-            border-radius: 6px;
-            padding: 0.75rem;
-            text-align: center;
-            font-size: 0.8rem;
+
+        .comparison-table tr.recommended-row td {
+            background: rgba(16, 185, 129, 0.08);
+            border-left: 3px solid var(--accent-emerald);
         }
-        
-        .satellite-id {
-            font-weight: bold;
-            color: #4dd0e1;
-            margin-bottom: 0.25rem;
+
+        .badge-recommended {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-emerald);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 0.4rem;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            width: 100%;
+            height: 380px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Activity Log */
+        .log-box {
+            background: #040710;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            height: 220px;
+            overflow-y: auto;
+            padding: 0.85rem 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .log-line {
+            line-height: 1.4;
+        }
+
+        .log-info { color: var(--accent-cyan); }
+        .log-success { color: var(--accent-emerald); }
+        .log-warning { color: var(--accent-amber); }
+        .log-error { color: var(--accent-rose); }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1100px) {
+            .selected-sat-banner {
+                grid-template-columns: 1fr 1fr;
+            }
+            .layout-2col {
+                grid-template-columns: 1fr;
+            }
+            .results-summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-navbar {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+            .fuel-container {
+                padding: 1rem 1rem 3rem 1rem;
+            }
+            .selected-sat-banner {
+                grid-template-columns: 1fr;
+            }
+            .results-summary-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="fuel-dashboard">
-        <div class="fuel-header">
-            <h1><i class="fas fa-rocket"></i> Real-Time Fuel Optimization Dashboard</h1>
-            <p>Advanced satellite fuel management and mission optimization</p>
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+        <a href="/dashboard#" class="navbar-brand">
+            <i class="fas fa-satellite"></i>
+            <span>ASTRAEUS</span>
+            <span class="subtitle">Real-Time Fuel Optimization Engine</span>
+        </a>
+        <div class="nav-actions">
+            <span class="live-badge">
+                <span class="live-dot"></span>
+                <span>Telemetry Synchronized</span>
+            </span>
+            <a href="/dashboard#" class="nav-btn">
+                <i class="fas fa-th-large"></i> Mission Control
+            </a>
+            <a href="/dashboard#conjunctions-tab" class="nav-btn">
+                <i class="fas fa-shield-alt"></i> Conjunctions
+            </a>
+            <a href="/dashboard#alerts-tab" class="nav-btn">
+                <i class="fas fa-exclamation-triangle"></i> Risk Alerts
+            </a>
         </div>
+    </header>
 
-        <!-- Mission Control Panel -->
-        <div class="control-panel">
-            <h3><i class="fas fa-cogs"></i> Mission Parameters</h3>
-            <div class="control-row">
-                <div class="input-group">
-                    <label>Initial Altitude (km)</label>
-                    <input type="number" id="initialAltitude" value="400" min="200" max="2000">
+    <div class="fuel-container">
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <div class="hero-title">
+                <h1><i class="fas fa-gas-pump"></i> Satellite Fuel Optimization & Delta-V Planner</h1>
+                <p>
+                    Select any satellite from your active fleet or configure custom spacecraft parameters to compute optimal impulsive transfer burns, compare propulsion systems, and budget propellant consumption.
+                </p>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat-card">
+                    <div class="hero-stat-val" id="statTrackedCount">--</div>
+                    <div class="hero-stat-lbl">Tracked Objects</div>
                 </div>
-                <div class="input-group">
-                    <label>Target Altitude (km)</label>
-                    <input type="number" id="targetAltitude" value="800" min="300" max="3000">
+                <div class="hero-stat-card">
+                    <div class="hero-stat-val" id="statOptimalIsp">3,500s</div>
+                    <div class="hero-stat-lbl">Peak Efficiency</div>
                 </div>
-                <div class="input-group">
-                    <label>Max Fuel Mass (kg)</label>
-                    <input type="number" id="maxFuelMass" value="100" min="10" max="500">
-                </div>
-                <div class="input-group">
-                    <label>Satellite Mass (kg)</label>
-                    <input type="number" id="satelliteMass" value="1000" min="100" max="5000">
+                <div class="hero-stat-card">
+                    <div class="hero-stat-val" style="color: var(--accent-emerald);" id="statSavingsPct">86.5%</div>
+                    <div class="hero-stat-lbl">Typical Savings</div>
                 </div>
             </div>
-            <div class="control-row">
-                <div class="input-group">
-                    <label>Optimization Priority</label>
-                    <select id="optimizationPriority">
-                        <option value="fuel">Fuel Efficiency</option>
-                        <option value="time">Time Efficiency</option>
-                        <option value="mass">Mass Efficiency</option>
-                        <option value="balanced">Balanced</option>
+        </div>
+
+        <!-- Satellite Selection & Specification Hub -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span>Target Satellite Selection & Mission Specification</span>
+                </div>
+                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Step 1: Choose spacecraft & define orbital transfer
+                </span>
+            </div>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="tab-buttons">
+                <button class="tab-btn active" id="tabFleetBtn" onclick="switchSatelliteMode('fleet')">
+                    <i class="fas fa-list-ul"></i> Select from Tracked Fleet & Presets
+                </button>
+                <button class="tab-btn" id="tabCustomBtn" onclick="switchSatelliteMode('custom')">
+                    <i class="fas fa-sliders-h"></i> Custom Spacecraft Specification
+                </button>
+            </div>
+
+            <!-- Fleet Selection Controls -->
+            <div id="fleetSelectionSection">
+                <!-- Preset Chips -->
+                <div class="preset-chips-container">
+                    <span class="preset-label"><i class="fas fa-bolt"></i> Quick-Select Mission Presets:</span>
+                    <div class="preset-chips" id="presetChips">
+                        <!-- Populated dynamically via JS -->
+                        <div class="preset-chip active" onclick="selectPreset('preset-iss')">
+                            <i class="fas fa-space-station"></i> ISS (LEO 418 km | 450t)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-starlink')">
+                            <i class="fas fa-satellite"></i> Starlink-1007 (LEO 550 km | 260kg)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-oneweb')">
+                            <i class="fas fa-satellite"></i> OneWeb-0012 (LEO 1200 km | 147kg)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-gps')">
+                            <i class="fas fa-compass"></i> GPS BIIR-2 (MEO 20,200 km | 2.0t)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-goes')">
+                            <i class="fas fa-globe-americas"></i> GOES-16 (GEO 35,786 km | 5.2t)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-hubble')">
+                            <i class="fas fa-eye"></i> Hubble (LEO 535 km | 11.1t)
+                        </div>
+                        <div class="preset-chip" onclick="selectPreset('preset-tiangong')">
+                            <i class="fas fa-solar-panel"></i> Tiangong (LEO 389 km | 100t)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Satellite Catalog Dropdown & Search -->
+                <div class="controls-grid" style="margin-bottom: 1.25rem;">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label">
+                            <span>Search & Select Any Active Tracked Satellite:</span>
+                            <span class="unit" id="catalogStatus">Loading catalog...</span>
+                        </label>
+                        <select class="form-select" id="satelliteCatalogSelect" onchange="onCatalogSelectChange()">
+                            <option value="">-- Choose from live catalog or use presets above --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span>Filter by Regime:</span>
+                        </label>
+                        <select class="form-select" id="regimeFilterSelect" onchange="filterSatelliteCatalog()">
+                            <option value="ALL">All Orbital Regimes</option>
+                            <option value="LEO">LEO (&lt; 2,000 km)</option>
+                            <option value="MEO">MEO (2,000 - 35,000 km)</option>
+                            <option value="GEO">GEO (&gt; 35,000 km)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Satellite Telemetry Banner -->
+            <div class="selected-sat-banner" id="satTelemetryBanner">
+                <div class="sat-meta-primary">
+                    <div class="sat-meta-name">
+                        <span id="bannerSatName">ISS (ZARYA) - Space Station</span>
+                        <span class="sat-badge-regime" id="bannerSatRegime">LEO</span>
+                    </div>
+                    <div class="sat-meta-sub" id="bannerSatDesc">
+                        International Space Station orbital reboost &amp; CAM avoidance
+                    </div>
+                </div>
+                <div class="sat-metric-box">
+                    <div class="val" id="bannerAltitude">418 km</div>
+                    <div class="lbl">Current Altitude</div>
+                </div>
+                <div class="sat-metric-box">
+                    <div class="val" id="bannerVelocity">7.66 km/s</div>
+                    <div class="lbl">Orbital Speed</div>
+                </div>
+                <div class="sat-metric-box">
+                    <div class="val" id="bannerTotalMass">450,000 kg</div>
+                    <div class="lbl">Wet Mass</div>
+                </div>
+                <div class="sat-metric-box">
+                    <div class="val" id="bannerFuelCapacity" style="color: var(--accent-emerald);">2,000 kg</div>
+                    <div class="lbl">Available Propellant</div>
+                </div>
+            </div>
+
+            <!-- Target Mission & Maneuver Parameters -->
+            <h4 style="font-size: 0.95rem; color: var(--accent-cyan); margin-bottom: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-bullseye"></i> Maneuver Objective &amp; Target Parameters
+            </h4>
+
+            <div class="controls-grid">
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Maneuver Type</span>
+                    </label>
+                    <select class="form-select" id="maneuverTypeSelect" onchange="onManeuverTypeChange()">
+                        <option value="hohmann">Hohmann Transfer (Altitude Change)</option>
+                        <option value="avoidance">Collision Avoidance Maneuver (CAM)</option>
+                        <option value="stationkeeping">Station-Keeping Reboost</option>
+                        <option value="deorbit">End-of-Life De-orbit &amp; Disposal</option>
                     </select>
                 </div>
-                <div class="input-group">
-                    <label>Max Power (W)</label>
-                    <input type="number" id="maxPower" value="5000" min="1000" max="10000">
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Initial Altitude</span>
+                        <span class="unit">km</span>
+                    </label>
+                    <input type="number" class="form-input" id="initialAltitude" value="418" min="150" max="40000" step="1">
                 </div>
-                <div class="input-group">
-                    <label>Mission Duration (hours)</label>
-                    <input type="number" id="missionDuration" value="24" min="1" max="168">
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Target Destination Altitude</span>
+                        <span class="unit">km</span>
+                    </label>
+                    <input type="number" class="form-input" id="targetAltitude" value="430" min="150" max="45000" step="1">
                 </div>
-                <div class="input-group">
-                    <label></label>
-                    <button class="btn" onclick="optimizeMission()" id="optimizeBtn">
-                        <i class="fas fa-rocket"></i> Optimize Mission
+
+                <div class="form-group" id="clearanceGroup" style="display: none;">
+                    <label class="form-label">
+                        <span>Required Clearance Miss Distance</span>
+                        <span class="unit">km</span>
+                    </label>
+                    <input type="number" class="form-input" id="clearanceDistance" value="25" min="2" max="100" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Spacecraft Wet Mass</span>
+                        <span class="unit">kg</span>
+                    </label>
+                    <input type="number" class="form-input" id="satelliteMass" value="450000" min="1" max="1000000" step="10">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Onboard Usable Propellant</span>
+                        <span class="unit">kg</span>
+                    </label>
+                    <input type="number" class="form-input" id="maxFuelMass" value="2000" min="0.1" max="50000" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Optimization Priority</span>
+                    </label>
+                    <select class="form-select" id="optimizationPriority">
+                        <option value="fuel">Minimum Fuel Consumption (Optimal ΔV)</option>
+                        <option value="time">Minimum Transfer Duration</option>
+                        <option value="balanced">Balanced (Trade-off Time vs Fuel)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>Max Electrical Power</span>
+                        <span class="unit">Watts</span>
+                    </label>
+                    <input type="number" class="form-input" id="maxPower" value="5000" min="100" max="50000" step="100">
+                </div>
+            </div>
+
+            <!-- Execution Action Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="fas fa-info-circle" style="color: var(--accent-cyan);"></i>
+                    Uses golden-ratio delta-v minimization &amp; Tsiolkovsky rocket equation across chemical and electric thrusters.
+                </div>
+                <button class="btn" id="optimizeBtn" onclick="optimizeSelectedSatellite()">
+                    <i class="fas fa-rocket"></i> Calculate &amp; Optimize Fuel for Selected Satellite
+                </button>
+            </div>
+        </div>
+
+        <!-- 2-Column Main Section: Results & Live Telemetry -->
+        <div class="layout-2col">
+            <!-- Left Column: Optimization Results & Comparison -->
+            <div>
+                <!-- Primary Optimization Result Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Mission Optimization Analysis</span>
+                        </div>
+                        <span id="feasibilityBadge" class="live-badge" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: var(--accent-emerald);">
+                            <i class="fas fa-check-circle"></i> Ready for Analysis
+                        </span>
+                    </div>
+
+                    <!-- 4 Summary Metrics -->
+                    <div class="results-summary-grid">
+                        <div class="metric-summary-box highlight">
+                            <div class="metric-summary-val" id="resDeltaV">--</div>
+                            <div class="metric-summary-lbl">Total ΔV Required</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="resFuelConsumed">--</div>
+                            <div class="metric-summary-lbl">Fuel Consumed</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="resFuelSavings">--</div>
+                            <div class="metric-summary-lbl">Propellant Saved</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="resFuelMargin">--</div>
+                            <div class="metric-summary-lbl">Remaining Margin</div>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Propulsion System Banner -->
+                    <div style="background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 10px; padding: 1.1rem; margin-bottom: 1.5rem;" id="recommendedPropulsionCard">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <strong style="color: var(--accent-cyan); font-size: 1.05rem;">
+                                <i class="fas fa-award"></i> Optimal Propulsion: <span id="resSystemName">Monopropellant Hydrazine</span>
+                            </strong>
+                            <span style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;" id="resSystemType">Chemical Propulsion</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">
+                            <div><strong>Specific Impulse:</strong> <span id="resSystemIsp" style="color: var(--text-primary); font-family: monospace;">230 s</span></div>
+                            <div><strong>Burn Duration:</strong> <span id="resBurnDuration" style="color: var(--text-primary); font-family: monospace;">--</span></div>
+                            <div><strong>Transfer Time:</strong> <span id="resTransferTime" style="color: var(--text-primary); font-family: monospace;">--</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Maneuver Stages Breakdown -->
+                    <h4 style="font-size: 0.92rem; color: var(--text-primary); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;">
+                        <i class="fas fa-layer-group"></i> Impulsive Maneuver Burn Profile
+                    </h4>
+                    <div class="stages-list" id="maneuverStagesContainer">
+                        <div class="stage-card">
+                            <div class="stage-info">
+                                <strong>Burn 1: Perigee Injection Burn</strong>
+                                <small>Impulsive prograde acceleration to raise transfer orbit apogee</small>
+                            </div>
+                            <div class="stage-metrics">
+                                <div class="stage-dv" id="stage1Dv">--</div>
+                                <div class="stage-sub">ΔV₁ (m/s)</div>
+                            </div>
+                        </div>
+                        <div class="stage-card" style="border-left-color: var(--accent-purple);">
+                            <div class="stage-info">
+                                <strong>Transfer Coast: Ballistic Elliptic Arc</strong>
+                                <small>Keplerian passive cruise toward target transfer apogee</small>
+                            </div>
+                            <div class="stage-metrics">
+                                <div class="stage-dv" id="stageCoastTime" style="color: var(--accent-purple);">--</div>
+                                <div class="stage-sub">Coast Duration</div>
+                            </div>
+                        </div>
+                        <div class="stage-card" style="border-left-color: var(--accent-emerald);">
+                            <div class="stage-info">
+                                <strong>Burn 2: Apogee Circularization Burn</strong>
+                                <small>Circularization impulse into target destination orbit</small>
+                            </div>
+                            <div class="stage-metrics">
+                                <div class="stage-dv" id="stage2Dv" style="color: var(--accent-emerald);">--</div>
+                                <div class="stage-sub">ΔV₂ (m/s)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Propulsion Systems Comparison Matrix -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-balance-scale"></i>
+                            <span>Multi-Propulsion System Comparison</span>
+                        </div>
+                        <button class="nav-btn" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" onclick="comparePropulsion()">
+                            <i class="fas fa-sync-alt"></i> Re-evaluate All
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="comparison-table" id="propulsionComparisonTable">
+                            <thead>
+                                <tr>
+                                    <th>Propulsion System</th>
+                                    <th>Type</th>
+                                    <th>Isp (s)</th>
+                                    <th>Thrust</th>
+                                    <th>Fuel Mass</th>
+                                    <th>Power (W)</th>
+                                    <th>Savings</th>
+                                </tr>
+                            </thead>
+                            <tbody id="propulsionTableBody">
+                                <!-- Populated dynamically -->
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                        Run optimization or click "Re-evaluate All" to compare propulsion technologies.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Real-Time Telemetry & Constellation -->
+            <div>
+                <!-- Real-Time Metrics & Telemetry Simulation -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Live Flight Telemetry Gauges</span>
+                        </div>
+                        <span id="telemetryStatus" class="live-badge" style="background: rgba(255, 255, 255, 0.05); border-color: var(--border-color); color: var(--text-secondary);">
+                            <span class="live-dot" style="background: var(--text-muted);"></span> Idle
+                        </span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="rtFuelMass">--</div>
+                            <div class="metric-summary-lbl">Current Fuel (kg)</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="rtPowerLevel" style="color: var(--accent-cyan);">--</div>
+                            <div class="metric-summary-lbl">Power Level (%)</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="rtAltitude" style="color: var(--accent-purple);">--</div>
+                            <div class="metric-summary-lbl">Altitude (km)</div>
+                        </div>
+                        <div class="metric-summary-box">
+                            <div class="metric-summary-val" id="rtEfficiency" style="color: var(--accent-amber);">--</div>
+                            <div class="metric-summary-lbl">Efficiency Score</div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" id="realtimeToggleBtn" onclick="toggleRealTimeTelemetry()" style="width: 100%;">
+                        <i class="fas fa-play"></i> Start Real-Time Telemetry Simulation
                     </button>
+                </div>
+
+                <!-- Constellation Deployment Optimizer -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Constellation Multi-Satellite Budget</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
+                        <label style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">Satellites in Plane:</label>
+                        <input type="number" class="form-input" id="numSatellites" value="6" min="2" max="24" style="width: 80px;">
+                        <button class="btn btn-secondary" onclick="optimizeConstellation()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fas fa-calculator"></i> Optimize Fleet
+                        </button>
+                    </div>
+                    <div id="constellationResultsBox" style="background: rgba(0, 0, 0, 0.25); border-radius: 8px; padding: 1rem; border: 1px solid var(--border-color); min-height: 80px;">
+                        <p style="font-size: 0.82rem; color: var(--text-muted); text-align: center;">
+                            Configure constellation size and click "Optimize Fleet" to compute multi-plane propellant allocation.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-terminal"></i>
+                            <span>Flight Propulsion Log</span>
+                        </div>
+                        <button class="nav-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="clearLog()">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="log-box" id="activityLog">
+                        <div class="log-line log-info">[SYSTEM] Astraeus Fuel Optimization Engine initialized.</div>
+                        <div class="log-line log-success">[ONLINE] Loaded high-precision Keplerian mechanics &amp; Tsiolkovsky models.</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="fuel-grid">
-            <!-- Real-Time Metrics -->
-            <div class="fuel-card">
-                <h3><i class="fas fa-tachometer-alt"></i> Real-Time Metrics</h3>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value" id="fuelMass">--</div>
-                        <div class="metric-label">Fuel Mass (kg)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="powerLevel">--</div>
-                        <div class="metric-label">Power Level (%)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="altitude">--</div>
-                        <div class="metric-label">Altitude (km)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="efficiency">--</div>
-                        <div class="metric-label">Efficiency (%)</div>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem; text-align: center;">
-                    <span class="status-indicator" id="statusIndicator"></span>
-                    <span id="optimizationStatus">Stopped</span>
-                </div>
-                <button class="btn" onclick="startRealTimeOptimization()" id="realtimeBtn" style="width: 100%; margin-top: 1rem;">
-                    <i class="fas fa-play"></i> Start Real-Time Optimization
-                </button>
-            </div>
-
-            <!-- Mission Results -->
-            <div class="fuel-card">
-                <h3><i class="fas fa-chart-line"></i> Optimization Results</h3>
-                <div id="optimizationResults">
-                    <p style="text-align: center; color: #666; padding: 2rem;">
-                        Click "Optimize Mission" to see results
-                    </p>
+        <!-- Full-Width Performance Charts -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-chart-area"></i>
+                    <span>Real-Time Trajectory &amp; Fuel Depletion Telemetry</span>
                 </div>
             </div>
-
-            <!-- Propulsion Comparison -->
-            <div class="fuel-card">
-                <h3><i class="fas fa-engine"></i> Propulsion Systems</h3>
-                <button class="btn" onclick="comparePropulsion()" style="margin-bottom: 1rem;">
-                    <i class="fas fa-balance-scale"></i> Compare Systems
-                </button>
-                <div class="propulsion-comparison" id="propulsionComparison">
-                    <p style="text-align: center; color: #666;">
-                        Click "Compare Systems" to analyze propulsion options
-                    </p>
-                </div>
-            </div>
-
-            <!-- Constellation Optimization -->
-            <div class="fuel-card">
-                <h3><i class="fas fa-satellite"></i> Constellation Deployment</h3>
-                <div style="margin-bottom: 1rem;">
-                    <label style="color: #4dd0e1; margin-right: 1rem;">Satellites:</label>
-                    <input type="number" id="numSatellites" value="6" min="2" max="12" style="width: 80px; background: #2a2a3e; border: 1px solid #444; color: white; padding: 0.25rem;">
-                    <button class="btn" onclick="optimizeConstellation()" style="margin-left: 1rem;">
-                        <i class="fas fa-satellite-dish"></i> Optimize
-                    </button>
-                </div>
-                <div id="constellationResults">
-                    <p style="text-align: center; color: #666;">
-                        Configure and optimize satellite constellation deployment
-                    </p>
-                </div>
-            </div>
-
-            <!-- Performance Charts -->
-            <div class="fuel-card" style="grid-column: span 2;">
-                <h3><i class="fas fa-chart-area"></i> Performance Analytics</h3>
-                <div class="chart-container" id="performanceChart"></div>
-            </div>
-
-            <!-- Activity Log -->
-            <div class="fuel-card">
-                <h3><i class="fas fa-list"></i> Activity Log</h3>
-                <div class="log-container" id="activityLog">
-                    <div class="log-entry log-info">[INFO] Fuel optimization dashboard initialized</div>
-                    <div class="log-entry log-info">[INFO] Ready for mission optimization</div>
-                </div>
-            </div>
+            <div class="chart-container" id="performanceChart"></div>
         </div>
     </div>
 
+    <!-- JavaScript Application Logic -->
     <script>
+        let satellitePresets = [];
+        let trackedSatellites = [];
+        let currentSelectedSatellite = null;
         let realTimeInterval = null;
-        let performanceData = {
-            time: [],
-            fuel: [],
-            power: [],
-            efficiency: []
-        };
+        let performanceData = { time: [], fuel: [], power: [], efficiency: [] };
 
-        function addLogEntry(type, message) {
-            const log = document.getElementById('activityLog');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            log.appendChild(entry);
-            log.scrollTop = log.scrollHeight;
+        function addLog(type, message) {
+            const logBox = document.getElementById('activityLog');
+            if (!logBox) return;
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logBox.appendChild(line);
+            logBox.scrollTop = logBox.scrollHeight;
         }
 
-        async function optimizeMission() {
+        function clearLog() {
+            const logBox = document.getElementById('activityLog');
+            if (logBox) logBox.innerHTML = '';
+        }
+
+        // Initialize Satellite Data from Backend
+        async function loadSatelliteCatalog() {
+            try {
+                const statusSpan = document.getElementById('catalogStatus');
+                if (statusSpan) statusSpan.textContent = 'Fetching fleet...';
+
+                const response = await fetch('/api/fuel/satellites');
+                const data = await response.json();
+
+                if (data.success) {
+                    satellitePresets = data.presets || [];
+                    trackedSatellites = data.tracked_satellites || [];
+
+                    document.getElementById('statTrackedCount').textContent = data.total_available || (satellitePresets.length + trackedSatellites.length);
+
+                    renderPresetChips(satellitePresets);
+                    populateCatalogSelect(trackedSatellites);
+
+                    if (statusSpan) statusSpan.textContent = `${trackedSatellites.length} live tracked satellites`;
+
+                    // Select ISS by default
+                    if (satellitePresets.length > 0) {
+                        applySatelliteSelection(satellitePresets[0]);
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading satellite catalog:', err);
+                addLog('error', 'Failed to load live satellite catalog: ' + err.message);
+            }
+        }
+
+        function renderPresetChips(presets) {
+            const container = document.getElementById('presetChips');
+            if (!container || !presets || presets.length === 0) return;
+
+            container.innerHTML = presets.map((p, idx) => `
+                <div class="preset-chip ${idx === 0 ? 'active' : ''}" id="chip-${p.id}" onclick="selectPreset('${p.id}')">
+                    <i class="fas fa-satellite"></i> ${p.name.split(' - ')[0]} (${p.altitude.toFixed(0)} km)
+                </div>
+            `).join('');
+        }
+
+        function populateCatalogSelect(satellites) {
+            const select = document.getElementById('satelliteCatalogSelect');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Choose from active tracked satellite fleet --</option>';
+            satellites.forEach(sat => {
+                const opt = document.createElement('option');
+                opt.value = sat.id;
+                opt.textContent = `${sat.name} [${sat.orbit_type}] - Alt: ${sat.altitude} km | Vel: ${sat.velocity} km/s`;
+                select.appendChild(opt);
+            });
+        }
+
+        function filterSatelliteCatalog() {
+            const regime = document.getElementById('regimeFilterSelect').value;
+            const select = document.getElementById('satelliteCatalogSelect');
+            if (!select) return;
+
+            const filtered = regime === 'ALL' 
+                ? trackedSatellites 
+                : trackedSatellites.filter(s => s.orbit_type === regime);
+
+            select.innerHTML = `<option value="">-- Filtered by ${regime} (${filtered.length} satellites) --</option>`;
+            filtered.forEach(sat => {
+                const opt = document.createElement('option');
+                opt.value = sat.id;
+                opt.textContent = `${sat.name} [${sat.orbit_type}] - Alt: ${sat.altitude} km | Vel: ${sat.velocity} km/s`;
+                select.appendChild(opt);
+            });
+        }
+
+        function selectPreset(presetId) {
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+            const activeChip = document.getElementById(`chip-${presetId}`);
+            if (activeChip) activeChip.classList.add('active');
+
+            const preset = satellitePresets.find(p => p.id === presetId);
+            if (preset) {
+                applySatelliteSelection(preset);
+                addLog('info', `Selected preset spacecraft: ${preset.name}`);
+            }
+        }
+
+        function onCatalogSelectChange() {
+            const select = document.getElementById('satelliteCatalogSelect');
+            const satId = select.value;
+            if (!satId) return;
+
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+
+            const sat = trackedSatellites.find(s => s.id === satId);
+            if (sat) {
+                applySatelliteSelection(sat);
+                addLog('info', `Selected tracked satellite: ${sat.name} (${sat.orbit_type})`);
+            }
+        }
+
+        function applySatelliteSelection(sat) {
+            currentSelectedSatellite = sat;
+
+            // Update Banner
+            document.getElementById('bannerSatName').textContent = sat.name;
+            document.getElementById('bannerSatRegime').textContent = sat.orbit_type || 'LEO';
+            document.getElementById('bannerSatDesc').textContent = sat.description || `${sat.orbit_type} operational satellite with ${sat.propulsion_name || 'monopropellant thrusters'}`;
+            document.getElementById('bannerAltitude').textContent = `${sat.altitude.toFixed(0)} km`;
+            document.getElementById('bannerVelocity').textContent = `${sat.velocity.toFixed(2)} km/s`;
+            document.getElementById('bannerTotalMass').textContent = `${sat.mass_kg.toLocaleString()} kg`;
+            document.getElementById('bannerFuelCapacity').textContent = `${sat.fuel_capacity_kg.toLocaleString()} kg`;
+
+            // Update Input Controls
+            document.getElementById('initialAltitude').value = Math.round(sat.altitude);
+            document.getElementById('targetAltitude').value = Math.round(sat.target_altitude || (sat.altitude + 30));
+            document.getElementById('satelliteMass').value = sat.mass_kg;
+            document.getElementById('maxFuelMass').value = sat.fuel_capacity_kg;
+        }
+
+        function switchSatelliteMode(mode) {
+            const fleetBtn = document.getElementById('tabFleetBtn');
+            const customBtn = document.getElementById('tabCustomBtn');
+            const fleetSec = document.getElementById('fleetSelectionSection');
+
+            if (mode === 'fleet') {
+                fleetBtn.classList.add('active');
+                customBtn.classList.remove('active');
+                fleetSec.style.display = 'block';
+            } else {
+                customBtn.classList.add('active');
+                fleetBtn.classList.remove('active');
+                fleetSec.style.display = 'none';
+
+                // Set custom satellite banner
+                document.getElementById('bannerSatName').textContent = 'Custom Specified Spacecraft';
+                document.getElementById('bannerSatRegime').textContent = 'CUSTOM';
+                document.getElementById('bannerSatDesc').textContent = 'User-defined mass, propellant, and orbital parameters.';
+                addLog('info', 'Switched to Custom Spacecraft Specification mode.');
+            }
+        }
+
+        function onManeuverTypeChange() {
+            const mType = document.getElementById('maneuverTypeSelect').value;
+            const clearanceGrp = document.getElementById('clearanceGroup');
+            const initialAlt = parseFloat(document.getElementById('initialAltitude').value) || 400;
+
+            if (mType === 'avoidance') {
+                clearanceGrp.style.display = 'flex';
+                document.getElementById('targetAltitude').value = Math.round(initialAlt + 12);
+            } else if (mType === 'deorbit') {
+                clearanceGrp.style.display = 'none';
+                document.getElementById('targetAltitude').value = 180;
+            } else {
+                clearanceGrp.style.display = 'none';
+                document.getElementById('targetAltitude').value = Math.round(initialAlt + 50);
+            }
+        }
+
+        // Main Mission Optimization
+        async function optimizeSelectedSatellite() {
             const btn = document.getElementById('optimizeBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Optimizing...';
-            
-            addLogEntry('info', 'Starting mission optimization...');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating Optimal Trajectory...';
 
-            const data = {
+            const satName = currentSelectedSatellite ? currentSelectedSatellite.name : 'Custom Spacecraft';
+            addLog('info', `Initiating fuel optimization for ${satName}...`);
+
+            const payload = {
+                satellite_name: satName,
+                satellite_id: currentSelectedSatellite ? currentSelectedSatellite.id : null,
                 initial_altitude: parseFloat(document.getElementById('initialAltitude').value),
                 target_altitude: parseFloat(document.getElementById('targetAltitude').value),
-                max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value),
                 max_total_mass: parseFloat(document.getElementById('satelliteMass').value),
+                max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value),
                 max_power: parseFloat(document.getElementById('maxPower').value),
-                max_mission_time: parseFloat(document.getElementById('missionDuration').value) * 3600,
-                priority: document.getElementById('optimizationPriority').value
+                priority: document.getElementById('optimizationPriority').value,
+                maneuver_type: document.getElementById('maneuverTypeSelect').value,
+                clearance_km: parseFloat(document.getElementById('clearanceDistance').value || 25)
             };
 
             try {
                 const response = await fetch('/api/fuel/optimize-mission', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    displayOptimizationResults(result.optimization_result);
-                    addLogEntry('success', `Mission optimized successfully using ${result.optimization_result.propulsion_system.name}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayOptimizationResults(data);
+                    addLog('success', `Optimal maneuver computed: ΔV = ${data.delta_v_total_m_s} m/s using ${data.optimization_result.propulsion_system.name}`);
                 } else {
-                    addLogEntry('error', `Optimization failed: ${result.error}`);
+                    addLog('error', `Optimization failed: ${data.error}`);
                 }
-            } catch (error) {
-                addLogEntry('error', `Network error: ${error.message}`);
+            } catch (err) {
+                console.error('Optimization error:', err);
+                addLog('error', 'Network error during optimization: ' + err.message);
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-rocket"></i> Optimize Mission';
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Calculate & Optimize Fuel for Selected Satellite';
         }
 
-        function displayOptimizationResults(result) {
-            const container = document.getElementById('optimizationResults');
-            container.innerHTML = `
-                <div style="margin-bottom: 1rem;">
-                    <strong style="color: #00ff7f;">Propulsion System:</strong><br>
-                    ${result.propulsion_system.name}<br>
-                    <small>Type: ${result.propulsion_system.type}</small>
-                </div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value">${result.fuel_consumption.fuel_mass.toFixed(2)}</div>
-                        <div class="metric-label">Fuel (kg)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${result.trajectory.total_delta_v.toFixed(3)}</div>
-                        <div class="metric-label">Delta-V (km/s)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${(result.trajectory.total_time / 3600).toFixed(1)}</div>
-                        <div class="metric-label">Time (hours)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">${result.propulsion_system.efficiency.toFixed(3)}</div>
-                        <div class="metric-label">Efficiency</div>
-                    </div>
-                </div>
-            `;
+        function displayOptimizationResults(data) {
+            // Feasibility Badge
+            const feasBadge = document.getElementById('feasibilityBadge');
+            if (data.feasibility && data.feasibility.is_feasible) {
+                feasBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+                feasBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                feasBadge.style.color = 'var(--accent-emerald)';
+                feasBadge.innerHTML = '<i class="fas fa-check-circle"></i> Feasible (Propellant Margin OK)';
+            } else {
+                feasBadge.style.background = 'rgba(244, 63, 94, 0.15)';
+                feasBadge.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+                feasBadge.style.color = 'var(--accent-rose)';
+                feasBadge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Fuel Limit Exceeded';
+            }
+
+            // Metric Summary Boxes
+            document.getElementById('resDeltaV').textContent = `${data.delta_v_total_m_s} m/s`;
+            document.getElementById('resFuelConsumed').textContent = `${data.fuel_consumed_kg} kg`;
+            document.getElementById('resFuelSavings').textContent = `${data.fuel_savings_percent}%`;
+            document.getElementById('resFuelMargin').textContent = `${data.fuel_remaining_kg} kg`;
+
+            // Recommended Propulsion System
+            const propSys = data.optimization_result.propulsion_system;
+            document.getElementById('resSystemName').textContent = propSys.name;
+            document.getElementById('resSystemType').textContent = propSys.type.replace('_', ' ').toUpperCase();
+            document.getElementById('resSystemIsp').textContent = `${propSys.specific_impulse.toFixed(0)} s`;
+            
+            const burnTimeS = data.optimization_result.fuel_consumption.burn_time;
+            document.getElementById('resBurnDuration').textContent = burnTimeS > 120 
+                ? `${(burnTimeS / 60).toFixed(1)} min` 
+                : `${burnTimeS.toFixed(1)} s`;
+
+            document.getElementById('resTransferTime').textContent = `${data.transfer_duration_hours} hours`;
+
+            // Stages Breakdown
+            if (data.maneuver_stages && data.maneuver_stages.length >= 3) {
+                document.getElementById('stage1Dv').textContent = `${data.maneuver_stages[0].delta_v_m_s} m/s`;
+                document.getElementById('stageCoastTime').textContent = `${data.maneuver_stages[1].duration_min} min`;
+                document.getElementById('stage2Dv').textContent = `${data.maneuver_stages[2].delta_v_m_s} m/s`;
+            }
+
+            // Propulsion Comparison Matrix
+            if (data.propulsion_comparison && data.propulsion_comparison.length > 0) {
+                renderPropulsionTable(data.propulsion_comparison, propSys.name);
+            }
+
+            // Update real-time gauges initial state
+            document.getElementById('rtFuelMass').textContent = data.fuel_remaining_kg;
+            document.getElementById('rtPowerLevel').textContent = '95.0';
+            document.getElementById('rtAltitude').textContent = data.target_altitude;
+            document.getElementById('rtEfficiency').textContent = (propSys.efficiency * 100).toFixed(1) + '%';
         }
 
+        function renderPropulsionTable(comparisons, recommendedName) {
+            const tbody = document.getElementById('propulsionTableBody');
+            if (!tbody) return;
+
+            const baselineFuel = comparisons.find(c => c.key === 'monopropellant')?.fuel_kg || comparisons[0].fuel_kg;
+
+            tbody.innerHTML = comparisons.map(sys => {
+                const isRec = sys.name === recommendedName;
+                const savings = baselineFuel > 0 
+                    ? Math.max(0, ((baselineFuel - sys.fuel_kg) / baselineFuel * 100)).toFixed(1)
+                    : 0;
+
+                return `
+                    <tr class="${isRec ? 'recommended-row' : ''}">
+                        <td>
+                            <strong>${sys.name}</strong>
+                            ${isRec ? '<span class="badge-recommended">OPTIMAL</span>' : ''}
+                        </td>
+                        <td>${sys.type}</td>
+                        <td style="font-family: monospace;">${sys.isp_s.toFixed(0)} s</td>
+                        <td style="font-family: monospace;">${sys.thrust_n.toFixed(2)} N</td>
+                        <td style="font-family: monospace; font-weight: 700; color: ${isRec ? 'var(--accent-emerald)' : 'var(--text-primary)'};">${sys.fuel_kg.toFixed(3)} kg</td>
+                        <td style="font-family: monospace;">${sys.power_w > 0 ? sys.power_w.toFixed(0) + ' W' : 'Passive'}</td>
+                        <td style="color: ${parseFloat(savings) > 0 ? 'var(--accent-emerald)' : 'var(--text-secondary)'}; font-weight: 600;">
+                            ${parseFloat(savings) > 0 ? '+' + savings + '%' : 'Baseline'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Compare Propulsion on demand
         async function comparePropulsion() {
-            addLogEntry('info', 'Comparing propulsion systems...');
-
-            const data = {
-                delta_v: 2.0,
-                satellite_mass: parseFloat(document.getElementById('satelliteMass').value)
-            };
+            addLog('info', 'Re-evaluating propulsion systems matrix...');
+            const satMass = parseFloat(document.getElementById('satelliteMass').value) || 1000;
 
             try {
                 const response = await fetch('/api/fuel/compare-propulsion', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        delta_v: 0.15,
+                        satellite_mass: satMass
+                    })
                 });
-
                 const result = await response.json();
-                
-                if (result.success) {
-                    displayPropulsionComparison(result.comparison);
-                    addLogEntry('success', `Compared ${result.comparison.length} propulsion systems`);
-                } else {
-                    addLogEntry('error', `Comparison failed: ${result.error}`);
+                if (result.success && result.comparison) {
+                    renderPropulsionTable(result.comparison, 'Hall Effect Thruster');
+                    addLog('success', 'Propulsion systems comparison matrix updated.');
                 }
-            } catch (error) {
-                addLogEntry('error', `Network error: ${error.message}`);
+            } catch (err) {
+                console.error(err);
+                addLog('error', 'Failed to compare propulsion systems: ' + err.message);
             }
         }
 
-        function displayPropulsionComparison(comparison) {
-            const container = document.getElementById('propulsionComparison');
-            let html = '<table class="comparison-table"><thead><tr><th>System</th><th>Fuel (kg)</th><th>Power (W)</th><th>Efficiency</th></tr></thead><tbody>';
-            
-            comparison.forEach(system => {
-                html += `
-                    <tr>
-                        <td><strong>${system.display_name}</strong><br><small>${system.type}</small></td>
-                        <td>${system.fuel_mass.toFixed(2)}</td>
-                        <td>${system.power_consumption.toFixed(0)}</td>
-                        <td>${(system.efficiency * 100).toFixed(1)}%</td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
+        // Real-Time Telemetry Simulation
+        async function toggleRealTimeTelemetry() {
+            const btn = document.getElementById('realtimeToggleBtn');
+            const statusBadge = document.getElementById('telemetryStatus');
 
-        async function startRealTimeOptimization() {
-            const btn = document.getElementById('realtimeBtn');
-            
             if (realTimeInterval) {
-                // Stop optimization
                 clearInterval(realTimeInterval);
                 realTimeInterval = null;
-                btn.innerHTML = '<i class="fas fa-play"></i> Start Real-Time Optimization';
-                document.getElementById('statusIndicator').className = 'status-indicator status-stopped';
-                document.getElementById('optimizationStatus').textContent = 'Stopped';
-                addLogEntry('warning', 'Real-time optimization stopped');
+                btn.innerHTML = '<i class="fas fa-play"></i> Start Real-Time Telemetry Simulation';
+                btn.className = 'btn btn-secondary';
+                statusBadge.innerHTML = '<span class="live-dot" style="background: var(--text-muted);"></span> Idle';
+                addLog('warning', 'Real-time telemetry simulation paused.');
                 return;
             }
 
-            // Start optimization
-            btn.innerHTML = '<i class="fas fa-stop"></i> Stop Real-Time Optimization';
-            document.getElementById('statusIndicator').className = 'status-indicator status-running';
-            document.getElementById('optimizationStatus').textContent = 'Running';
-            addLogEntry('success', 'Real-time optimization started');
-
-            // Initialize optimizer
-            const data = {
-                initial_altitude: parseFloat(document.getElementById('initialAltitude').value),
-                target_altitude: parseFloat(document.getElementById('targetAltitude').value),
-                max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value),
-                min_fuel_mass: 15.0,
-                min_power_level: 0.3
-            };
+            btn.innerHTML = '<i class="fas fa-stop"></i> Stop Telemetry Simulation';
+            btn.className = 'btn btn-danger';
+            statusBadge.innerHTML = '<span class="live-dot" style="background: var(--accent-emerald);"></span> Streaming Live';
+            addLog('success', 'Real-time telemetry simulation active (2s interval).');
 
             try {
                 await fetch('/api/fuel/realtime/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        initial_altitude: parseFloat(document.getElementById('initialAltitude').value),
+                        target_altitude: parseFloat(document.getElementById('targetAltitude').value),
+                        max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value),
+                        min_fuel_mass: 10.0,
+                        min_power_level: 0.3
+                    })
                 });
 
-                // Start polling for metrics
-                realTimeInterval = setInterval(updateRealTimeMetrics, 2000);
-            } catch (error) {
-                addLogEntry('error', `Failed to start optimization: ${error.message}`);
-                btn.innerHTML = '<i class="fas fa-play"></i> Start Real-Time Optimization';
+                realTimeInterval = setInterval(pollRealTimeMetrics, 2000);
+            } catch (err) {
+                addLog('error', 'Failed to start telemetry simulation: ' + err.message);
             }
         }
 
-        async function updateRealTimeMetrics() {
+        async function pollRealTimeMetrics() {
             try {
                 const response = await fetch('/api/fuel/realtime/status');
                 const result = await response.json();
-                
-                if (result.success) {
-                    const metrics = result.metrics;
-                    
-                    document.getElementById('fuelMass').textContent = metrics.current_fuel_mass.toFixed(1);
-                    document.getElementById('powerLevel').textContent = (metrics.current_power_level * 100).toFixed(1);
-                    document.getElementById('altitude').textContent = metrics.orbital_altitude.toFixed(1);
-                    document.getElementById('efficiency').textContent = (metrics.performance_score * 100).toFixed(1);
-                    
-                    // Update performance chart
-                    updatePerformanceChart(metrics);
-                    
-                    // Check for constraint violations
-                    if (metrics.constraint_violations.length > 0) {
-                        document.getElementById('statusIndicator').className = 'status-indicator status-warning';
-                        addLogEntry('warning', `Constraint violations: ${metrics.constraint_violations.join(', ')}`);
-                    }
+
+                if (result.success && result.metrics) {
+                    const m = result.metrics;
+                    document.getElementById('rtFuelMass').textContent = m.current_fuel_mass.toFixed(2);
+                    document.getElementById('rtPowerLevel').textContent = (m.current_power_level * 100).toFixed(1);
+                    document.getElementById('rtAltitude').textContent = m.orbital_altitude.toFixed(1);
+                    document.getElementById('rtEfficiency').textContent = (m.performance_score * 100).toFixed(1) + '%';
+
+                    updateTelemetryPlotly(m);
                 }
-            } catch (error) {
-                console.error('Failed to update metrics:', error);
+            } catch (err) {
+                console.warn('Telemetry polling error:', err);
             }
         }
 
-        function updatePerformanceChart(metrics) {
-            const currentTime = new Date().toLocaleTimeString();
-            
-            performanceData.time.push(currentTime);
-            performanceData.fuel.push(metrics.current_fuel_mass);
-            performanceData.power.push(metrics.current_power_level * 100);
-            performanceData.efficiency.push(metrics.performance_score * 100);
-            
-            // Keep only last 20 data points
+        function updateTelemetryPlotly(m) {
+            const now = new Date().toLocaleTimeString();
+            performanceData.time.push(now);
+            performanceData.fuel.push(m.current_fuel_mass);
+            performanceData.power.push(m.current_power_level * 100);
+            performanceData.efficiency.push(m.performance_score * 100);
+
             if (performanceData.time.length > 20) {
                 performanceData.time.shift();
                 performanceData.fuel.shift();
                 performanceData.power.shift();
                 performanceData.efficiency.shift();
             }
-            
+
             const traces = [
                 {
                     x: performanceData.time,
                     y: performanceData.fuel,
                     name: 'Fuel Mass (kg)',
                     type: 'scatter',
-                    line: { color: '#00ff7f' }
+                    line: { color: '#00f3ff', width: 2.5 }
                 },
                 {
                     x: performanceData.time,
@@ -634,7 +1575,7 @@
                     name: 'Power Level (%)',
                     type: 'scatter',
                     yaxis: 'y2',
-                    line: { color: '#4dd0e1' }
+                    line: { color: '#8b5cf6', width: 2 }
                 },
                 {
                     x: performanceData.time,
@@ -642,106 +1583,97 @@
                     name: 'Efficiency (%)',
                     type: 'scatter',
                     yaxis: 'y2',
-                    line: { color: '#ffc107' }
+                    line: { color: '#10b981', width: 2 }
                 }
             ];
-            
+
             const layout = {
-                title: 'Real-Time Performance Metrics',
-                paper_bgcolor: '#1e1e2e',
-                plot_bgcolor: '#1e1e2e',
-                font: { color: 'white' },
-                xaxis: { color: 'white' },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'rgba(5, 10, 20, 0.6)',
+                font: { color: '#94a3b8' },
+                xaxis: { gridcolor: 'rgba(255, 255, 255, 0.05)' },
                 yaxis: { 
-                    title: 'Fuel Mass (kg)',
-                    color: 'white',
-                    side: 'left'
+                    title: 'Fuel (kg)', 
+                    titlefont: { color: '#00f3ff' },
+                    tickfont: { color: '#00f3ff' },
+                    gridcolor: 'rgba(255, 255, 255, 0.05)' 
                 },
-                yaxis2: {
-                    title: 'Percentage (%)',
-                    color: 'white',
-                    overlaying: 'y',
-                    side: 'right'
+                yaxis2: { 
+                    title: 'Percentage (%)', 
+                    titlefont: { color: '#10b981' },
+                    tickfont: { color: '#10b981' },
+                    overlaying: 'y', 
+                    side: 'right' 
                 },
-                margin: { t: 40, r: 60, b: 40, l: 60 }
+                legend: { orientation: 'h', y: 1.15, font: { color: '#f8fafc' } },
+                margin: { t: 30, r: 50, b: 40, l: 50 }
             };
-            
-            Plotly.newPlot('performanceChart', traces, layout, { responsive: true });
+
+            Plotly.react('performanceChart', traces, layout, { responsive: true, displayModeBar: false });
         }
 
+        // Constellation Optimization
         async function optimizeConstellation() {
-            const numSatellites = parseInt(document.getElementById('numSatellites').value);
-            addLogEntry('info', `Optimizing constellation with ${numSatellites} satellites...`);
-
-            const data = {
-                num_satellites: numSatellites,
-                initial_altitude: parseFloat(document.getElementById('initialAltitude').value),
-                target_altitude: parseFloat(document.getElementById('targetAltitude').value),
-                max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value) / 2,
-                priority: document.getElementById('optimizationPriority').value
-            };
+            const count = parseInt(document.getElementById('numSatellites').value) || 6;
+            const container = document.getElementById('constellationResultsBox');
+            container.innerHTML = '<p style="text-align:center; color: var(--accent-cyan);"><i class="fas fa-spinner fa-spin"></i> Optimizing fleet allocation...</p>';
 
             try {
                 const response = await fetch('/api/fuel/constellation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        num_satellites: count,
+                        initial_altitude: parseFloat(document.getElementById('initialAltitude').value),
+                        target_altitude: parseFloat(document.getElementById('targetAltitude').value),
+                        max_fuel_mass: parseFloat(document.getElementById('maxFuelMass').value) / count,
+                        priority: document.getElementById('optimizationPriority').value
+                    })
                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    displayConstellationResults(result.constellation);
-                    addLogEntry('success', `Constellation optimized: ${result.constellation.total_fuel_consumption.toFixed(2)}kg total fuel`);
-                } else {
-                    addLogEntry('error', `Constellation optimization failed: ${result.error}`);
+                const res = await response.json();
+                if (res.success && res.constellation) {
+                    const c = res.constellation;
+                    container.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.88rem;">
+                            <strong>Total Fleet Propellant: <span style="color: var(--accent-emerald); font-family: monospace;">${c.total_fuel_consumption.toFixed(2)} kg</span></strong>
+                            <span style="color: var(--text-secondary);">Avg Time: ${(c.average_mission_time / 3600).toFixed(1)}h</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem;">
+                            ${c.satellites.slice(0, 8).map(s => `
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; text-align: center; font-size: 0.78rem;">
+                                    <div style="font-weight: 700; color: var(--accent-cyan);">Node #${s.satellite_id}</div>
+                                    <div style="font-family: monospace; color: var(--text-primary);">${s.fuel_consumption.toFixed(2)}kg</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    addLog('success', `Constellation optimized: ${count} satellites budgeted (${c.total_fuel_consumption.toFixed(2)} kg total fuel).`);
                 }
-            } catch (error) {
-                addLogEntry('error', `Network error: ${error.message}`);
+            } catch (err) {
+                container.innerHTML = `<p style="color: var(--accent-rose); font-size: 0.82rem;">Fleet optimization failed: ${err.message}</p>`;
             }
         }
 
-        function displayConstellationResults(constellation) {
-            const container = document.getElementById('constellationResults');
-            
-            let html = `
-                <div style="margin-bottom: 1rem;">
-                    <strong>Total Fuel: ${constellation.total_fuel_consumption.toFixed(2)} kg</strong><br>
-                    <small>Delta-V: ${constellation.total_delta_v.toFixed(3)} km/s | Avg Time: ${(constellation.average_mission_time / 3600).toFixed(1)}h</small>
-                </div>
-                <div class="constellation-grid">
-            `;
-            
-            constellation.satellites.forEach(sat => {
-                html += `
-                    <div class="satellite-card">
-                        <div class="satellite-id">Sat ${sat.satellite_id}</div>
-                        <div>${sat.fuel_consumption.toFixed(1)}kg</div>
-                        <div style="font-size: 0.7rem; color: #888;">${sat.propulsion_system}</div>
-                    </div>
-                `;
-            });
-            
-            html += '</div>';
-            container.innerHTML = html;
-        }
+        // Window Onload
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSatelliteCatalog();
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            addLogEntry('success', 'Dashboard loaded successfully');
-            
-            // Initialize empty performance chart
-            const layout = {
-                title: 'Real-Time Performance Metrics',
-                paper_bgcolor: '#1e1e2e',
-                plot_bgcolor: '#1e1e2e',
-                font: { color: 'white' },
-                xaxis: { color: 'white' },
-                yaxis: { color: 'white' },
-                margin: { t: 40, r: 40, b: 40, l: 40 }
+            // Initialize clean chart layout
+            const initLayout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'rgba(5, 10, 20, 0.6)',
+                font: { color: '#94a3b8' },
+                xaxis: { gridcolor: 'rgba(255, 255, 255, 0.05)', title: 'Timeline' },
+                yaxis: { gridcolor: 'rgba(255, 255, 255, 0.05)', title: 'Propellant (kg)' },
+                margin: { t: 30, r: 40, b: 40, l: 50 }
             };
-            
-            Plotly.newPlot('performanceChart', [], layout, { responsive: true });
+            Plotly.newPlot('performanceChart', [], initLayout, { responsive: true, displayModeBar: false });
+
+            // Run initial optimization for ISS after a short delay
+            setTimeout(() => {
+                optimizeSelectedSatellite();
+            }, 800);
         });
     </script>
 </body>
