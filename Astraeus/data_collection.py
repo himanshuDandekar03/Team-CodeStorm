@@ -219,17 +219,17 @@ def generate_fallback_satellite_features(count=500, label=0):
     print(f"🛰️ Generated {len(df)} synthetic operational satellite features as fallback")
     return df
 
-def get_latest_features(source="active_satellites", label=0):
+def get_latest_features(source="active_satellites", label=0, force_cache=False):
     """
     Smart TLE fetching with guaranteed data availability:
-    - Download fresh data only when permitted
+    - Download fresh data only when permitted and force_cache is False
     - Use cached or seed TLE files otherwise
     - Fallback to high-fidelity synthetic fleet if network & disk unavailable
     """
     tle_lines = None
     
     # Check if we should download fresh data
-    if should_download_fresh_data():
+    if not force_cache and should_download_fresh_data():
         tle_lines = download_and_cache_tle(source)
     
     # If download failed or not scheduled, use cached data

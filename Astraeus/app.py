@@ -118,7 +118,11 @@ def build_high_risk_satellites_payload(features_df, results):
                 continue
                 
             is_debris = bool(debris_predictions[idx])
-            debris_prob = float(debris_probabilities[idx][1]) if len(debris_probabilities[idx]) > 1 else 0.0
+            prob_val = debris_probabilities[idx]
+            if hasattr(prob_val, '__len__'):
+                debris_prob = float(prob_val[1]) if len(prob_val) > 1 else float(prob_val[0])
+            else:
+                debris_prob = float(prob_val)
             
             is_high_risk = debris_prob > 0.3 or idx in results.get('high_risk_objects', [])
             
@@ -213,7 +217,7 @@ def bootstrap_satellite_cache():
     """Immediately bootstrap latest_data and high_risk_cache with satellites on startup"""
     global latest_data, high_risk_cache
     try:
-        features_df = get_latest_features("active_satellites", label=0)
+        features_df = get_latest_features("active_satellites", label=0, force_cache=True)
         if features_df is not None and len(features_df) > 0:
             satellites = []
             for idx, row in features_df.head(500).iterrows():
@@ -247,7 +251,7 @@ def bootstrap_satellite_cache():
             mock_results = {
                 'debris_detection': {
                     'predictions': [1 if i % 16 == 0 else 0 for i in range(min(500, total_count))],
-                    'probabilities': [0.85 if i % 16 == 0 else 0.05 for i in range(min(500, total_count))],
+                    'probabilities': [[0.15, 0.85] if i % 16 == 0 else [0.95, 0.05] for i in range(min(500, total_count))],
                     'debris_count': 32
                 }
             }
