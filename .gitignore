@@ -31,3 +31,19 @@ pnpm-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Astraeus / OrbitGuard Data & Caches
+tle_cache/
+tle_data/
+**/tle_cache/
+**/tle_data/
+*.git_backup
+.git_backup

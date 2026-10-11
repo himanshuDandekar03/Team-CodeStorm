@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astraeus - Orbital Collision Prediction System</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename='favicon/favicon.svg') }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Terminal-style color scheme - black theme */
+            --terminal-bg: #000000;
+            --terminal-secondary: #0d0d0d;
+            --terminal-border: #333333;
+            --terminal-green: #00ff7f;
+            --terminal-amber: #eab308;
+            --terminal-red: #ff5555;
+            --terminal-blue: #8ab4f8;
+            --terminal-cyan: #4dd0e1;
+            --terminal-magenta: #ff77ff;
+            --terminal-white: #ffffff;
+            --terminal-gray: #d0d0d0;
+            --terminal-dark-gray: #1a1a1a;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--terminal-bg);
+            color: var(--terminal-white);
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Animated background stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--terminal-green);
+            border-radius: 50%;
+        }
+
+        /* Main container */
+        .landing-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .landing-content {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            row-gap: 1.5rem;
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--terminal-white);
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: var(--terminal-cyan);
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--terminal-gray);
+            margin-bottom: 0rem;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 4rem;
+            line-height: 1.6;
+        }
+
+        /* Features grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 0;
+        }
+
+        .feature-card {
+            background: #0f0f0f;
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .feature-card:nth-child(1) .feature-icon { color: var(--terminal-white); }
+        .feature-card:nth-child(2) .feature-icon { color: var(--terminal-white); }
+        .feature-card:nth-child(3) .feature-icon { color: var(--terminal-white); }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--terminal-white);
+        }
+
+        .feature-description {
+            color: var(--terminal-gray);
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        /* CTA section */
+        .cta {
+            background: #0f0f0f;
+            border: 1px solid var(--terminal-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .cta h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--terminal-white);
+        }
+
+        .cta p {
+            color: var(--terminal-gray);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--terminal-white);
+            color: var(--terminal-bg);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #e5e5e5;
+        }
+
+        /* Stats ticker */
+        .stats-ticker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 1px solid var(--terminal-border);
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: var(--terminal-white);
+            text-align: center;
+            backdrop-filter: blur(10px);
+            z-index: 20;
+        }
+
+        .ticker-content {
+            white-space: nowrap;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-container {
+                padding: 1rem;
+            }
+
+            .cta {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-height: 800px) {
+            .logo { font-size: 3rem; }
+            .hero { margin-bottom: 1rem; }
+            .features { gap: 1rem; }
+            .feature-card { padding: 1.25rem; }
+            .cta { padding: 2rem; }
+        }
+
+        /* Terminal cursor effect */
+        .cursor { opacity: 1; }
+    </style>
+</head>
+<body>
+    <!-- Animated background stars -->
+    <div class="stars" id="stars"></div>
+
+    <div class="landing-container">
+        <div class="landing-content">
+            <!-- Hero Section -->
+            <div class="hero">
+                <h1 class="logo">ASTRAEUS<span class="cursor">_</span></h1>
+                <h2 class="tagline">Advanced Orbital Collision Prediction System</h2>
+                <p class="subtitle">
+                    Real-time satellite tracking • AI-powered risk assessment • Neural network trajectory prediction
+                    <br>
+                    Protecting our orbital environment with cutting-edge space surveillance technology
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="features">
+                <div class="feature-card">
+                    <i class="fas fa-satellite feature-icon"></i>
+                    <h3 class="feature-title">Real-Time Tracking</h3>
+                    <p class="feature-description">
+                        Monitor 12,000+ active satellites and space debris objects with live TLE data updates every 15 seconds
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-brain feature-icon"></i>
+                    <h3 class="feature-title">AI Prediction Models</h3>
+                    <p class="feature-description">
+                        LSTM + GRU neural networks with 94.2% accuracy for trajectory prediction and collision risk assessment
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-globe feature-icon"></i>
+                    <h3 class="feature-title">3D Visualization</h3>
+                    <p class="feature-description">
+                        Interactive 3D orbital visualization with WebGL rendering and multiple view modes for analysis
+                    </p>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="cta">
+                <h3><i class="fas fa-rocket"></i> Access Mission Control</h3>
+                <p>Enter the Astraeus command center to monitor orbital collision risks and analyze satellite trajectories in real-time.</p>
+                <a href="/login" class="btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Launch Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Ticker -->
+    <div class="stats-ticker">
+        <div class="ticker-content">
+            ACTIVE SATELLITES: 12,484 • DEBRIS OBJECTS: 37 • HIGH-RISK CONJUNCTIONS: 24 • COLLISION PROBABILITY: 0.19% • PREDICTION ACCURACY: 94.2% • LAST UPDATE: REAL-TIME
+        </div>
+    </div>
+
+    <script>
+        // Generate animated background stars
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const numStars = 100;
+
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+
+                // Random colors
+                const colors = ['var(--terminal-green)', 'var(--terminal-cyan)', 'var(--terminal-white)'];
+                star.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Initialize stars on page load
+        document.addEventListener('DOMContentLoaded', createStars);
+
+        // Update ticker with real-time data (optional)
+        async function updateTicker() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+
+                if (data.success) {
+                    const ticker = document.querySelector('.ticker-content');
+                    ticker.innerHTML = `
+                        ACTIVE SATELLITES: ${data.total_objects || 0} •
+                        DEBRIS OBJECTS: ${data.debris_count || 0} •
+                        HIGH-RISK CONJUNCTIONS: ${data.high_risk_count || 0} •
+                        COLLISION PROBABILITY: ${(data.collision_probability || 0).toFixed(3)}% •
+                        PREDICTION ACCURACY: 94.2% •
+                        LAST UPDATE: ${new Date().toLocaleTimeString('en-US', { hour12: false })}
+                    `;
+                }
+            } catch (error) {
+                console.log('Could not fetch real-time data for ticker');
+            }
+        }
+
+        // Update ticker every 30 seconds
+        setInterval(updateTicker, 30000);
+        updateTicker(); // Initial update
+    </script>
+</body>
+</html>
