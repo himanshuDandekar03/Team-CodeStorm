@@ -1181,7 +1181,7 @@ def api_trajectory_plot():
         ax4.zaxis.pane.fill = False
         
         # Overall title
-        fig.suptitle('Astraeus - Orbital Trajectory Predictions\nGenerated: ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
+        fig.suptitle('OrbitGuard AI - Orbital Trajectory Predictions\nGenerated: ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 
                     color='#00ffff', fontsize=16, y=0.95)
         
         plt.tight_layout()
@@ -2193,7 +2193,7 @@ def download_all_metrics():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    print("Starting Astraeus Web Demo...")
+    print("Starting OrbitGuard AI Web Demo...")
     
     # Initialize predictor
     if initialize_predictor():

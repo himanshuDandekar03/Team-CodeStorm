@@ -123,7 +123,7 @@ class AstraeusDashboard {
         await this.initializeVisualization();
         await this.startRealTimeUpdates();
         this.setupEventListeners();
-        this.showAlert('Astraeus Dashboard initialized', 'success');
+        this.showAlert('OrbitGuard AI Dashboard initialized', 'success');
         
         // Center the view initially
         this.centerDefaultView(true);
@@ -2313,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.dashboard.loadSatelliteList();
     }, 2000);
     
-    console.log('Astraeus Dashboard initialized');
+    console.log('OrbitGuard AI Dashboard initialized');
     console.log('Real-time orbital collision prediction system active');
 });
 
