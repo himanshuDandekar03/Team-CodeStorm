@@ -36,7 +36,7 @@ from data_viz import DataVisualization
 try:
     from conjunction_detector import screen_conjunctions, quick_screen, compute_collision_probability, ConjunctionEvent
     from space_weather import get_space_weather_summary, atmospheric_drag_multiplier
-    from avoidance_maneuver import compute_avoidance_maneuver, compute_avoidance_for_events
+    from avoidance_maneuver import compute_avoidance_maneuver, compute_avoidance_for_events, compute_fuel_consumption
     orbitguard_modules_available = True
 except ImportError as e:
     print(f"OrbitGuard AI advanced modules import warning: {e}")
@@ -461,6 +461,145 @@ def api_avoidance_recommendations():
         'recommendations': convert_numpy_types(recs),
         'count': len(recs),
         'timestamp': latest_data['timestamp']
+    })
+
+@app.route('/api/demo/rajesh-collision')
+def api_demo_rajesh_collision():
+    """
+    Dedicated 72-Hour Satellite Collision & Autonomous Avoidance Demo Endpoint for Rajesh.
+    Provides deterministic ephemeris for two colliding satellites (impact in 72h, miss distance 0.00 km),
+    Clohessy-Wiltshire maneuver deflection options for selected spacecraft, and fuel optimization analytics.
+    """
+    from datetime import timezone, timedelta
+    now = datetime.now(timezone.utc)
+    tca = now + timedelta(hours=72)
+
+    r_earth = 6371.0
+    alt_km = 550.0
+    r_orbit = r_earth + alt_km
+    mu_earth = 398600.4418
+    v_orbit = float(np.sqrt(mu_earth / r_orbit))
+    period_min = float(2 * np.pi * np.sqrt(r_orbit**3 / mu_earth) / 60.0)
+
+    m0_sat1 = 1200.0  # kg pre-burn mass
+    isp_s = 300.0     # s specific impulse
+    g0 = 9.80665
+
+    maneuvers = {
+        'radial_outward': {
+            'id': 'radial_outward',
+            'name': 'Optimal Radial Outward (+R)',
+            'direction': '+R (Radial Outward)',
+            'delta_v_m_s': 0.38,
+            'burn_lead_time_hours': 24.0,
+            'miss_distance_km': 52.4,
+            'fuel_consumed_kg': round(compute_fuel_consumption(0.38, m0_sat1, isp_s, g0), 4),
+            'fuel_reserve_percent': 99.82,
+            'burn_duration_sec': 4.2,
+            'risk_level': 'GREEN',
+            'collision_probability': 1.2e-8,
+            'feasible': True,
+            'recommended': True,
+            'description': 'Clohessy-Wiltshire optimized impulsive radial deflection, maximizing cross-track & radial clearance with minimal propellant penalty.'
+        },
+        'prograde': {
+            'id': 'prograde',
+            'name': 'In-Track Prograde (+V)',
+            'direction': '+T (In-Track Prograde)',
+            'delta_v_m_s': 0.54,
+            'burn_lead_time_hours': 24.0,
+            'miss_distance_km': 64.1,
+            'fuel_consumed_kg': round(compute_fuel_consumption(0.54, m0_sat1, isp_s, g0), 4),
+            'fuel_reserve_percent': 99.74,
+            'burn_duration_sec': 5.8,
+            'risk_level': 'GREEN',
+            'collision_probability': 8.5e-9,
+            'feasible': True,
+            'recommended': False,
+            'description': 'Semimajor axis altitude pump burn, speeding up the orbital period to advance satellite phase at TCA.'
+        },
+        'retrograde': {
+            'id': 'retrograde',
+            'name': 'In-Track Retrograde (-V)',
+            'direction': '-T (In-Track Retrograde)',
+            'delta_v_m_s': 0.48,
+            'burn_lead_time_hours': 24.0,
+            'miss_distance_km': 58.7,
+            'fuel_consumed_kg': round(compute_fuel_consumption(0.48, m0_sat1, isp_s, g0), 4),
+            'fuel_reserve_percent': 99.77,
+            'burn_duration_sec': 5.2,
+            'risk_level': 'GREEN',
+            'collision_probability': 1.0e-8,
+            'feasible': True,
+            'recommended': False,
+            'description': 'Velocity reduction burn, lowering perigee to phase-delay the arrival time past the conjunction plane.'
+        }
+    }
+
+    opt_maneuver = maneuvers['radial_outward']
+
+    return jsonify({
+        'success': True,
+        'title': 'OrbitGuard AI // Demonstration Protocol for Rajesh',
+        'scenario': {
+            'satellite_1': {
+                'id': 'ASTRA-SAT 1',
+                'norad_id': 48210,
+                'type': 'Active Earth Observation Spacecraft',
+                'altitude_km': alt_km,
+                'inclination_deg': 53.0,
+                'period_min': round(period_min, 1),
+                'velocity_km_s': round(v_orbit, 2),
+                'mass_kg': m0_sat1,
+                'fuel_capacity_kg': 85.0,
+                'fuel_remaining_kg': 85.0,
+                'isp_s': isp_s,
+                'maneuverable': True,
+                'color': '#00f0ff',
+                'status': 'OPERATIONAL'
+            },
+            'satellite_2': {
+                'id': 'COSMOS-2412 DEBRIS',
+                'norad_id': 38914,
+                'type': 'Non-Cooperative Defunct Fragment',
+                'altitude_km': alt_km + 3.0,
+                'inclination_deg': 86.4,
+                'period_min': round(period_min + 0.1, 1),
+                'velocity_km_s': round(v_orbit + 0.04, 2),
+                'mass_kg': 450.0,
+                'fuel_capacity_kg': 0.0,
+                'fuel_remaining_kg': 0.0,
+                'isp_s': 0.0,
+                'maneuverable': False,
+                'color': '#ff3366',
+                'status': 'DEFUNCT_DERELICT'
+            },
+            'collision': {
+                'time_to_impact_hours': 72.0,
+                'tca_utc': tca.strftime('%Y-%m-%d %H:%M:%S UTC'),
+                'miss_distance_km': 0.00,
+                'relative_velocity_km_s': 10.74,
+                'collision_probability': 0.987,
+                'risk_level': 'CRITICAL RED',
+                'conjunction_location': {
+                    'lat': 42.36,
+                    'lon': -71.06,
+                    'altitude_km': 551.5
+                },
+                'impact_warning': 'Direct orbital intersection at 10.74 km/s. Catastrophic hypervelocity fragmentation would produce ~15,000 trackable debris pieces.'
+            },
+            'maneuvers': maneuvers,
+            'recommended_maneuver': opt_maneuver,
+            'summary': {
+                'initial_miss_km': 0.00,
+                'post_avoidance_miss_km': opt_maneuver['miss_distance_km'],
+                'delta_v_m_s': opt_maneuver['delta_v_m_s'],
+                'fuel_consumed_kg': opt_maneuver['fuel_consumed_kg'],
+                'fuel_saved_vs_late_burn_percent': 78.4,
+                'safety_margin_over_threshold_km': opt_maneuver['miss_distance_km'] - 25.0,
+                'status': 'COLLISION AVERTED'
+            }
+        }
     })
 
 @app.route('/api/avoidance/plan', methods=['POST'])

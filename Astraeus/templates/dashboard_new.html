@@ -915,6 +915,211 @@
             cursor: pointer;
             z-index: 10001;
         }
+
+        /* ══════════════════════════════════════════════════════════════════
+           RAJESH DEMO: 72H COLLISION & AVOIDANCE MODAL STYLES
+           ══════════════════════════════════════════════════════════════════ */
+        .rajesh-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 7, 18, 0.94);
+            backdrop-filter: blur(14px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .rajesh-modal-card {
+            max-width: 1180px;
+            width: 100%;
+            max-height: 94vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #0b1329 0%, #060b17 100%);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(0, 240, 255, 0.15);
+            overflow: hidden;
+            animation: rajeshModalFadeIn 0.3s ease;
+        }
+
+        @keyframes rajeshModalFadeIn {
+            from { opacity: 0; transform: scale(0.97) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .rajesh-modal-header {
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 18, 36, 0.6);
+        }
+
+        .rajesh-badge-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 240, 255, 0.15);
+            color: #00f0ff;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            margin-bottom: 4px;
+        }
+
+        .rajesh-step-tracker {
+            display: flex;
+            gap: 8px;
+            padding: 0.75rem 1.75rem;
+            background: rgba(0, 0, 0, 0.45);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            overflow-x: auto;
+        }
+
+        .rajesh-step-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .rajesh-step-pill.active {
+            background: rgba(0, 240, 255, 0.15);
+            color: #00f0ff;
+            border-color: #00f0ff;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+        }
+
+        .rajesh-step-pill.completed {
+            background: rgba(0, 230, 118, 0.12);
+            color: #00e676;
+            border-color: rgba(0, 230, 118, 0.4);
+        }
+
+        .rajesh-modal-body {
+            padding: 1.5rem 1.75rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .rajesh-modal-footer {
+            padding: 1rem 1.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(6, 11, 24, 0.8);
+        }
+
+        .rajesh-sat-card {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.02);
+            position: relative;
+        }
+
+        .rajesh-sat-card:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .rajesh-sat-card.selected {
+            border-color: #00f0ff;
+            background: rgba(0, 240, 255, 0.08);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+        }
+
+        .rajesh-strat-btn {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .rajesh-strat-btn:hover {
+            border-color: rgba(0, 230, 118, 0.5);
+        }
+
+        .rajesh-strat-btn.active {
+            border-color: #00e676;
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            font-weight: 700;
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.25);
+        }
+
+        #rajesh-3d-container {
+            width: 100%;
+            height: 460px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #040814;
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .hud-overlay {
+            position: absolute;
+            background: rgba(6, 11, 24, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .hud-stat {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud-label {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hud-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: monospace;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -925,6 +1130,9 @@
             <h1>OrbitGuard AI</h1>
         </div>
         <div class="header-actions">
+            <button class="btn" onclick="window.rajeshDemo && window.rajeshDemo.launch()" style="background: linear-gradient(135deg, #00f0ff 0%, #7928ca 100%); color: #fff; font-weight: 600; padding: 0.5rem 1.1rem; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; box-shadow: 0 0 16px rgba(0, 240, 255, 0.45); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                <i class="fas fa-play-circle" style="color: #00f0ff;"></i> <span>🎬 Rajesh Demo (72h Collision)</span>
+            </button>
             <div class="status-indicator">
                 <div class="status-dot"></div>
                 <span>System Online</span>
@@ -1005,7 +1213,28 @@
         <div class="content">
             <!-- Overview Tab -->
             <div id="overview-tab" class="tab-content active">
-                <h2>System Overview</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>System Overview</h2>
+                </div>
+
+                <!-- Guided Demo Showcase Banner for Rajesh -->
+                <div style="background: linear-gradient(135deg, rgba(16, 24, 48, 0.95) 0%, rgba(30, 20, 60, 0.95) 100%); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 12px; padding: 1.25rem 1.75rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 32px rgba(0, 240, 255, 0.15); flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 240, 255, 0.15); color: #00f0ff; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; border: 1px solid rgba(0, 240, 255, 0.3);">
+                            <i class="fas fa-rocket"></i> Interactive Demonstration Test Case
+                        </div>
+                        <h3 style="margin: 0; font-size: 1.25rem; color: #ffffff; font-weight: 700;">
+                            72-Hour Satellite Collision & Autonomous Avoidance Walkthrough
+                        </h3>
+                        <p style="margin: 0.35rem 0 0 0; color: #94a3b8; font-size: 0.88rem; max-width: 780px;">
+                            Step-by-step executive demonstration for Rajesh: 72h conjunction warning → isolated two-satellite 3D trajectory → satellite selection → trajectory deflection → fuel optimization telemetry → executive summary.
+                        </p>
+                    </div>
+                    <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.75rem 1.5rem; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 0 20px rgba(0, 240, 255, 0.5); display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="window.rajeshDemo && window.rajeshDemo.launch()">
+                        <i class="fas fa-play"></i> Launch Demo Walkthrough
+                    </button>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value" style="color: var(--primary-color);" id="total-objects">-</div>
@@ -1683,6 +1912,9 @@
                         </p>
                     </div>
                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #7928ca 100%); color: #fff; font-weight: 600; box-shadow: 0 0 16px rgba(0, 240, 255, 0.45); border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="window.rajeshDemo && window.rajeshDemo.launch()">
+                            <i class="fas fa-play-circle" style="color: #00f0ff;"></i> Rajesh Demo (72h Conjunction)
+                        </button>
                         <button class="btn btn-outline" style="border: 1px solid var(--accent-color); color: var(--accent-color);" onclick="loadSyntheticScenario()">
                             <i class="fas fa-flask"></i> Synthetic Conjunction Test
                         </button>
@@ -2164,11 +2396,550 @@
         </div>
     </div>
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         RAJESH DEMO: 72H COLLISION & AVOIDANCE MODAL
+         ══════════════════════════════════════════════════════════════════ -->
+    <div id="rajesh-demo-modal" class="rajesh-modal">
+        <div class="rajesh-modal-card">
+            <!-- Modal Header -->
+            <div class="rajesh-modal-header">
+                <div>
+                    <div class="rajesh-badge-tag">
+                        <i class="fas fa-satellite-dish"></i> OrbitGuard AI // Demonstration Protocol
+                    </div>
+                    <h2 style="margin: 0; font-size: 1.35rem; color: #ffffff; font-weight: 700;">
+                        72-Hour Satellite Collision & Autonomous Avoidance Walkthrough
+                    </h2>
+                    <span style="font-size: 0.8rem; color: #94a3b8;">
+                        Dedicated interactive end-to-end flight test case prepared for Rajesh
+                    </span>
+                </div>
+                <button class="btn btn-outline" style="border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; padding: 6px 14px; border-radius: 6px; cursor: pointer;" onclick="window.rajeshDemo.close()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+
+            <!-- Step Progress Pills -->
+            <div class="rajesh-step-tracker">
+                <div class="rajesh-step-pill active" id="rajesh-step-pill-1" onclick="window.rajeshDemo.goToStep(1)">
+                    <span>1</span> 72h Collision Risk
+                </div>
+                <div class="rajesh-step-pill" id="rajesh-step-pill-2" onclick="window.rajeshDemo.goToStep(2)">
+                    <span>2</span> Isolated 3D Trajectory
+                </div>
+                <div class="rajesh-step-pill" id="rajesh-step-pill-3" onclick="window.rajeshDemo.goToStep(3)">
+                    <span>3</span> Select Satellite to Maneuver
+                </div>
+                <div class="rajesh-step-pill" id="rajesh-step-pill-4" onclick="window.rajeshDemo.goToStep(4)">
+                    <span>4</span> Deflected Trajectory
+                </div>
+                <div class="rajesh-step-pill" id="rajesh-step-pill-5" onclick="window.rajeshDemo.goToStep(5)">
+                    <span>5</span> Fuel Optimization
+                </div>
+                <div class="rajesh-step-pill" id="rajesh-step-pill-6" onclick="window.rajeshDemo.goToStep(6)">
+                    <span>6</span> Mission Summary
+                </div>
+            </div>
+
+            <!-- Modal Body: Step Contents -->
+            <div class="rajesh-modal-body">
+
+                <!-- STEP 1: 72H COLLISION RISK -->
+                <div id="rajesh-step-1" style="display: block;">
+                    <div style="background: rgba(255, 0, 85, 0.12); border: 1px solid #ff0055; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 1.8rem; color: #ff0055;"></i>
+                            <div>
+                                <div style="font-weight: 700; color: #ff3366; font-size: 1.05rem;">
+                                    CRITICAL CONJUNCTION DETECTED — COLLISION IN 72:00:00 HOURS
+                                </div>
+                                <div style="color: #cbd5e1; font-size: 0.85rem;">
+                                    Predicted Time of Closest Approach (TCA): T + 72.0h • Direct intersection course
+                                </div>
+                            </div>
+                        </div>
+                        <span style="background: #ff0055; color: #fff; font-weight: 700; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem;">
+                            CRITICAL RED ALERT
+                        </span>
+                    </div>
+
+                    <!-- Telemetry Summary Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem;">
+                        <div class="hud-stat">
+                            <span class="hud-label">Time to Collision</span>
+                            <span class="hud-val" style="color: #ff3366;">72h 00m 00s</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Miss Distance</span>
+                            <span class="hud-val" style="color: #ff3366;">0.00 km (Direct)</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Relative Velocity</span>
+                            <span class="hud-val" style="color: #ffb300;">10.74 km/s</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Collision Probability (Pc)</span>
+                            <span class="hud-val" style="color: #ff0055;">98.7%</span>
+                        </div>
+                    </div>
+
+                    <!-- Two Satellites In Danger -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem;">
+                        <!-- Satellite 1 -->
+                        <div style="background: rgba(0, 240, 255, 0.04); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 12px; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #00f0ff; box-shadow: 0 0 8px #00f0ff;"></span>
+                                    <h4 style="margin: 0; color: #00f0ff; font-size: 1.1rem;">ASTRA-SAT 1</h4>
+                                </div>
+                                <span style="background: rgba(0, 240, 255, 0.15); color: #00f0ff; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                                    PRIMARY OBJECT
+                                </span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;">
+                                <div><strong>Catalog ID:</strong> NORAD 48210</div>
+                                <div><strong>Type:</strong> Active Earth Observation Spacecraft</div>
+                                <div><strong>Altitude / Orbit:</strong> 550.0 km • Low Earth Orbit (LEO)</div>
+                                <div><strong>Inclination:</strong> 53.0° • Speed: 7.58 km/s</div>
+                                <div><strong>Wet Mass:</strong> 1,200.0 kg (Pre-burn wet mass)</div>
+                                <div><strong>Propulsion:</strong> Hydrazine Monopropellant (85.0 kg fuel reserve)</div>
+                                <div><strong>Capability:</strong> <span style="color: #00e676;">Operational (Maneuver Capable)</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Satellite 2 -->
+                        <div style="background: rgba(255, 51, 102, 0.04); border: 1px solid rgba(255, 51, 102, 0.3); border-radius: 12px; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ff3366; box-shadow: 0 0 8px #ff3366;"></span>
+                                    <h4 style="margin: 0; color: #ff3366; font-size: 1.1rem;">COSMOS-2412 DEBRIS</h4>
+                                </div>
+                                <span style="background: rgba(255, 51, 102, 0.15); color: #ff3366; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                                    SECONDARY OBJECT
+                                </span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;">
+                                <div><strong>Catalog ID:</strong> NORAD 38914</div>
+                                <div><strong>Type:</strong> Non-Cooperative Defunct Fragment</div>
+                                <div><strong>Altitude / Orbit:</strong> 553.0 km • Low Earth Orbit (LEO)</div>
+                                <div><strong>Inclination:</strong> 86.4° • Speed: 7.62 km/s</div>
+                                <div><strong>Dry Mass:</strong> 450.0 kg (Derelict rocket body section)</div>
+                                <div><strong>Propulsion:</strong> None (Zero propellant)</div>
+                                <div><strong>Capability:</strong> <span style="color: #ff3366;">Defunct Derelict (Uncontrolled)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Explanatory Context -->
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 1rem 1.25rem; font-size: 0.88rem; color: #94a3b8; line-height: 1.5; border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <strong style="color: #ffffff;">Mission Control Threat Briefing:</strong> OrbitGuard AI's high-precision SGP4 propagator and cKDTree spatial filter detected a head-on conjunction between active commercial spacecraft <strong>ASTRA-SAT 1</strong> and defunct fragment <strong>COSMOS-2412 DEBRIS</strong> exactly <strong>72 hours in the future</strong>. Without active avoidance intervention, impact at 10.74 km/s would produce an estimated 15,000+ lethal debris fragments in the 550 km orbital corridor.
+                    </div>
+
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.85rem 2rem; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);" onclick="window.rajeshDemo.nextStep()">
+                            <i class="fas fa-cube"></i> See 3D Trajectory of Two Satellites ➡
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: ISOLATED 3D TRAJECTORY VIEW -->
+                <div id="rajesh-step-2" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span style="color: #00f0ff; font-weight: 700; font-size: 0.95rem;">
+                                <i class="fas fa-globe"></i> Isolated 3D Orbital Trajectory (Two Satellites Only)
+                            </span>
+                            <span style="color: #94a3b8; font-size: 0.82rem; margin-left: 8px;">
+                                Background catalogue filtered out to focus exclusively on the colliding pair
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" style="border: 1px solid rgba(0, 240, 255, 0.4); color: #00f0ff; padding: 4px 10px; font-size: 0.78rem; border-radius: 4px;" onclick="window.rajeshDemo.resetCamera()">
+                                <i class="fas fa-undo"></i> Reset Camera
+                            </button>
+                            <button class="btn btn-outline" style="border: 1px solid rgba(255, 255, 255, 0.2); color: #cbd5e1; padding: 4px 10px; font-size: 0.78rem; border-radius: 4px;" onclick="window.rajeshDemo.toggleSpeed()">
+                                <i class="fas fa-forward"></i> <span id="rajesh-speed-badge">Speed 1x</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3D Canvas Viewport -->
+                    <div id="rajesh-3d-container">
+                        <!-- HUD Overlay: Telemetry Legend -->
+                        <div class="hud-overlay" style="top: 12px; left: 12px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 6px; font-weight: 700; text-transform: uppercase;">
+                                3D Trajectory Legend
+                            </div>
+                            <div style="font-size: 0.78rem; color: #00f0ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                <span style="display: inline-block; width: 12px; height: 3px; background: #00f0ff;"></span>
+                                <strong>ASTRA-SAT 1</strong> (Inc: 53.0° • Alt: 550 km)
+                            </div>
+                            <div style="font-size: 0.78rem; color: #ff3366; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                <span style="display: inline-block; width: 12px; height: 3px; background: #ff3366;"></span>
+                                <strong>COSMOS-2412 DEBRIS</strong> (Inc: 86.4° • Alt: 553 km)
+                            </div>
+                            <div style="font-size: 0.75rem; color: #ff0044; display: flex; align-items: center; gap: 6px;">
+                                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff0044; box-shadow: 0 0 6px #ff0044;"></span>
+                                <strong>Collision TCA in 72h</strong> (Miss: 0.00 km)
+                            </div>
+                        </div>
+
+                        <!-- HUD Overlay: Controls Help -->
+                        <div class="hud-overlay" style="bottom: 12px; right: 12px; font-size: 0.75rem; color: #94a3b8;">
+                            <i class="fas fa-mouse"></i> Drag: Rotate • Scroll: Zoom • Right-click: Pan
+                        </div>
+                    </div>
+
+                    <!-- 3D Analysis Caption -->
+                    <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 0.85rem; color: #cbd5e1;">
+                            <span style="color: #ff3366; font-weight: 700;">Geometry Inspection:</span> The orbital planes intersect at coordinates <strong>42.36°N, 71.06°W</strong> at altitude 551.5 km. Both satellites arrive simultaneously at <strong>T+72.0h</strong>.
+                        </div>
+                        <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.6rem 1.25rem; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; margin-left: 12px;" onclick="window.rajeshDemo.nextStep()">
+                            Next: Select Satellite & Plan Avoidance ➡
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: SELECT SATELLITE & STRATEGY -->
+                <div id="rajesh-step-3" style="display: none;">
+                    <div style="margin-bottom: 1.25rem;">
+                        <h3 style="margin: 0; font-size: 1.2rem; color: #ffffff;">
+                            Select Spacecraft for Trajectory Diversion
+                        </h3>
+                        <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                            OrbitGuard AI allows you to select which satellite should execute the avoidance burn:
+                        </p>
+                    </div>
+
+                    <!-- Satellite Selection Cards -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem;">
+                        <!-- Option A: ASTRA-SAT 1 -->
+                        <div id="rajesh-sat-card-1" class="rajesh-sat-card selected" onclick="window.rajeshDemo.selectSatellite('sat1')">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #00f0ff; font-size: 1.05rem;">
+                                    <i class="fas fa-satellite"></i> ASTRA-SAT 1 (Recommended)
+                                </h4>
+                                <span style="background: rgba(0, 230, 118, 0.15); color: #00e676; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 700;">
+                                    ACTIVE PROPULSION
+                                </span>
+                            </div>
+                            <div style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.5;">
+                                <div>• <strong>Mass:</strong> 1,200 kg pre-burn wet mass</div>
+                                <div>• <strong>Fuel Capacity:</strong> 85.0 kg hydrazine onboard</div>
+                                <div>• <strong>Thruster Isp:</strong> 300.0 seconds specific impulse</div>
+                                <div>• <strong>Feasibility:</strong> <span style="color: #00e676; font-weight: 600;">100% FEASIBLE (Maneuver Recommended)</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Option B: COSMOS-2412 DEBRIS -->
+                        <div id="rajesh-sat-card-2" class="rajesh-sat-card" onclick="window.rajeshDemo.selectSatellite('sat2')">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #ff3366; font-size: 1.05rem;">
+                                    <i class="fas fa-meteor"></i> COSMOS-2412 DEBRIS
+                                </h4>
+                                <span style="background: rgba(255, 51, 102, 0.15); color: #ff3366; font-size: 0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 700;">
+                                    NON-MANEUVERABLE
+                                </span>
+                            </div>
+                            <div style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.5;">
+                                <div>• <strong>Mass:</strong> 450 kg defunct dry fragment</div>
+                                <div>• <strong>Fuel Capacity:</strong> 0.0 kg (Non-functional)</div>
+                                <div>• <strong>Thrusters:</strong> None (Derelict rocket body)</div>
+                                <div>• <strong>Feasibility:</strong> <span style="color: #ff3366; font-weight: 600;">NOT FEASIBLE (Cannot thrust)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning if secondary selected -->
+                    <div id="rajesh-sat-warning" style="display: none; background: rgba(255, 179, 0, 0.12); border: 1px solid #ffb300; border-radius: 8px; padding: 10px 14px; margin-bottom: 1.25rem; font-size: 0.85rem; color: #cbd5e1;"></div>
+
+                    <!-- Maneuver Strategy Selection -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <h4 style="margin: 0 0 8px 0; color: #ffffff; font-size: 0.95rem;">
+                            Select Maneuver Burn Strategy:
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <button id="rajesh-strat-radial_outward" class="rajesh-strat-btn active" onclick="window.rajeshDemo.selectManeuver('radial_outward')">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong style="color: #00e676;">Radial Outward (+R)</strong>
+                                    <span style="font-size: 0.7rem; background: rgba(0,230,118,0.2); color: #00e676; padding: 2px 6px; border-radius: 10px;">OPTIMAL</span>
+                                </div>
+                                <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
+                                    ΔV: 0.38 m/s • Fuel: 0.155 kg • Miss: 52.4 km
+                                </div>
+                            </button>
+
+                            <button id="rajesh-strat-prograde" class="rajesh-strat-btn" onclick="window.rajeshDemo.selectManeuver('prograde')">
+                                <div>
+                                    <strong style="color: #ffffff;">In-Track Prograde (+V)</strong>
+                                </div>
+                                <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
+                                    ΔV: 0.54 m/s • Fuel: 0.220 kg • Miss: 64.1 km
+                                </div>
+                            </button>
+
+                            <button id="rajesh-strat-retrograde" class="rajesh-strat-btn" onclick="window.rajeshDemo.selectManeuver('retrograde')">
+                                <div>
+                                    <strong style="color: #ffffff;">In-Track Retrograde (-V)</strong>
+                                </div>
+                                <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
+                                    ΔV: 0.48 m/s • Fuel: 0.196 kg • Miss: 58.7 km
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Telemetry Preview Box -->
+                    <div id="rajesh-maneuver-preview" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 10px; padding: 12px 16px;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                            <div class="hud-stat">
+                                <span class="hud-label">Impulsive ΔV</span>
+                                <span class="hud-val" style="color: #00f0ff;">0.38 m/s</span>
+                            </div>
+                            <div class="hud-stat">
+                                <span class="hud-label">Propellant Mass</span>
+                                <span class="hud-val" style="color: #00e676;">0.155 kg</span>
+                            </div>
+                            <div class="hud-stat">
+                                <span class="hud-label">Expected Miss Distance</span>
+                                <span class="hud-val" style="color: #00e676;">52.4 km</span>
+                            </div>
+                            <div class="hud-stat">
+                                <span class="hud-label">Safety Status</span>
+                                <span class="hud-val" style="color: #00e676;">FEASIBLE (CLEAR)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button class="btn" style="background: linear-gradient(135deg, #00e676 0%, #00b0ff 100%); color: #000; font-weight: 700; padding: 0.85rem 2rem; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 0 20px rgba(0, 230, 118, 0.4);" onclick="window.rajeshDemo.nextStep()">
+                            <i class="fas fa-fire"></i> Apply Maneuver & Change Path ➡
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: DEFLECTED TRAJECTORY ON 3D MODEL -->
+                <div id="rajesh-step-4" style="display: none;">
+                    <div style="background: rgba(0, 230, 118, 0.12); border: 1px solid #00e676; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-check-circle" style="font-size: 1.8rem; color: #00e676;"></i>
+                            <div>
+                                <div style="font-weight: 700; color: #00e676; font-size: 1.05rem;">
+                                    TRAJECTORY DEFLECTED — COLLISION AVERTED!
+                                </div>
+                                <div style="color: #cbd5e1; font-size: 0.85rem;">
+                                    New Miss Distance: <strong id="step4-new-miss" style="color: #00e676;">52.4 km</strong> (Exceeds 25.0 km threshold by +27.4 km)
+                                </div>
+                            </div>
+                        </div>
+                        <span style="background: #00e676; color: #000; font-weight: 700; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem;">
+                            GREEN SAFE CLEARANCE
+                        </span>
+                    </div>
+
+                    <!-- Deflected 3D Viewport note -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; font-size: 0.82rem; color: #cbd5e1; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="color: #00e676; font-weight: 700;">● Glowing Green Path:</span> New deflected trajectory of ASTRA-SAT 1 &nbsp;|&nbsp; 
+                            <span style="color: #553344; font-weight: 600;">● Faint Red Path:</span> Original dangerous collision orbit
+                        </div>
+                        <div style="color: #00f0ff; font-weight: 600;">
+                            Applied Burn: <span id="step4-applied-dv">0.38 m/s (+R)</span>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Stats -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1rem;">
+                        <div class="hud-stat">
+                            <span class="hud-label">Original Miss Distance</span>
+                            <span class="hud-val" style="color: #ff3366; text-decoration: line-through;">0.00 km</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Deflected Miss Distance</span>
+                            <span class="hud-val" style="color: #00e676;">52.4 km</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Collision Probability (Pc)</span>
+                            <span class="hud-val" style="color: #00e676;">&lt; 1.0 × 10⁻⁸</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Safety Margin</span>
+                            <span class="hud-val" style="color: #00f0ff;">+27.4 km over Red</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.85rem 2rem; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem;" onclick="window.rajeshDemo.nextStep()">
+                            <i class="fas fa-gas-pump"></i> Next: Fuel Optimization Parameters ➡
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 5: FUEL OPTIMIZATION PARAMETERS -->
+                <div id="rajesh-step-5" style="display: none;">
+                    <div style="margin-bottom: 1.25rem;">
+                        <h3 style="margin: 0; font-size: 1.25rem; color: #ffffff;">
+                            Propulsion & Fuel Optimization Telemetry
+                        </h3>
+                        <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                            Detailed thruster metrics and propellant expenditure using Tsiolkovsky's Rocket Equation:
+                        </p>
+                    </div>
+
+                    <!-- Propulsion Metrics Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 1.5rem;">
+                        <div class="hud-stat">
+                            <span class="hud-label">Impulsive ΔV Executed</span>
+                            <span class="hud-val" id="step5-dv" style="color: #00f0ff;">0.38 m/s</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Velocity increment applied</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Propellant Mass Consumed</span>
+                            <span class="hud-val" id="step5-fuel" style="color: #00e676;">0.155 kg (155 g)</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Minimal hydrazine expenditure</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Remaining Fuel Reserve</span>
+                            <span class="hud-val" id="step5-reserve" style="color: #00e676;">84.845 kg / 85.0 kg (99.82%)</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Full mission lifespan intact</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Spacecraft Wet Mass (m₀)</span>
+                            <span class="hud-val" style="color: #ffffff;">1,200.0 kg</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Pre-burn wet mass</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Specific Impulse (Isp)</span>
+                            <span class="hud-val" style="color: #ffffff;">300.0 seconds</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Hydrazine thruster efficiency</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span class="hud-label">Fuel Savings Advantage</span>
+                            <span class="hud-val" style="color: #ffb300;">78.4% Fuel Saved</span>
+                            <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Compared to late burn at T-2h (1.72 m/s)</span>
+                        </div>
+                    </div>
+
+                    <!-- Mathematical Formula Breakdown -->
+                    <div style="background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                        <h4 style="margin: 0 0 8px 0; color: #00f0ff; font-size: 0.95rem;">
+                            <i class="fas fa-calculator"></i> Tsiolkovsky Rocket Equation Verification:
+                        </h4>
+                        <div style="font-family: monospace; font-size: 0.95rem; color: #e2e8f0; background: rgba(0,0,0,0.5); padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;">
+                            m_prop = m₀ • [ 1 - exp( -ΔV / (I_sp • g₀) ) ]
+                        </div>
+                        <div style="font-family: monospace; font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+                            m_prop = 1200.0 kg • [ 1 - exp( -0.38 / (300.0 • 9.80665) ) ]<br>
+                            m_prop = 1200.0 kg • [ 1 - exp( -0.00012916 ) ]<br>
+                            <strong>m_prop = 0.15498 kg ≈ 0.155 kg (155 grams)</strong>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.85rem 2rem; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem;" onclick="window.rajeshDemo.nextStep()">
+                            <i class="fas fa-clipboard-check"></i> Next: Executive Mission Summary ➡
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 6: EXECUTIVE MISSION SUMMARY -->
+                <div id="rajesh-step-6" style="display: none;">
+                    <div style="margin-bottom: 1.25rem;">
+                        <div class="rajesh-badge-tag" style="background: rgba(0, 230, 118, 0.15); color: #00e676; border-color: rgba(0,230,118,0.3);">
+                            <i class="fas fa-check-double"></i> Verification Complete
+                        </div>
+                        <h3 style="margin: 4px 0 0 0; font-size: 1.3rem; color: #ffffff;">
+                            Executive Mission Summary & Test Case Sign-Off
+                        </h3>
+                        <p style="margin: 0.25rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                            Summary of actions performed in this demonstration protocol for Rajesh:
+                        </p>
+                    </div>
+
+                    <!-- Flow Checklist Table -->
+                    <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
+                            <thead>
+                                <tr style="background: rgba(255, 255, 255, 0.05); color: #94a3b8; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                    <th style="padding: 10px 16px;">Workflow Stage</th>
+                                    <th style="padding: 10px 16px;">System Action Taken</th>
+                                    <th style="padding: 10px 16px;">Key Metrics</th>
+                                    <th style="padding: 10px 16px;">Verification Status</th>
+                                </tr>
+                            </thead>
+                            <tbody style="color: #cbd5e1;">
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <td style="padding: 10px 16px;"><strong>1. Conjunction Screening</strong></td>
+                                    <td style="padding: 10px 16px;">Detected head-on collision between ASTRA-SAT 1 and COSMOS-2412</td>
+                                    <td style="padding: 10px 16px; font-family: monospace; color: #ff3366;">Impact in 72h • Miss: 0.00 km</td>
+                                    <td style="padding: 10px 16px; color: #00e676;"><i class="fas fa-check"></i> DETECTED</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <td style="padding: 10px 16px;"><strong>2. 3D Spatial Isolation</strong></td>
+                                    <td style="padding: 10px 16px;">Filtered out full catalogue to focus strictly on the 2 colliding orbits</td>
+                                    <td style="padding: 10px 16px; font-family: monospace;">2 Bodies • 1 Intersection</td>
+                                    <td style="padding: 10px 16px; color: #00e676;"><i class="fas fa-check"></i> ISOLATED</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <td style="padding: 10px 16px;"><strong>3. Spacecraft Selection</strong></td>
+                                    <td style="padding: 10px 16px;">Selected active satellite ASTRA-SAT 1 (derelict debris cannot thrust)</td>
+                                    <td style="padding: 10px 16px; font-family: monospace;">ASTRA-SAT 1 (1200 kg)</td>
+                                    <td style="padding: 10px 16px; color: #00e676;"><i class="fas fa-check"></i> VALIDATED</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <td style="padding: 10px 16px;"><strong>4. Trajectory Deflection</strong></td>
+                                    <td style="padding: 10px 16px;">Applied optimal Clohessy-Wiltshire +R impulsive diversion burn</td>
+                                    <td style="padding: 10px 16px; font-family: monospace; color: #00e676;">Miss: 52.4 km (Safe)</td>
+                                    <td style="padding: 10px 16px; color: #00e676;"><i class="fas fa-check"></i> AVERTED</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 16px;"><strong>5. Fuel Optimization</strong></td>
+                                    <td style="padding: 10px 16px;">Calculated propellant consumption via Tsiolkovsky equation</td>
+                                    <td style="padding: 10px 16px; font-family: monospace; color: #00e676;">0.155 kg • 99.82% reserve</td>
+                                    <td style="padding: 10px 16px; color: #00e676;"><i class="fas fa-check"></i> OPTIMIZED</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Final Action Buttons -->
+                    <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+                        <button class="btn btn-outline" style="border: 1px solid rgba(0, 240, 255, 0.4); color: #00f0ff; padding: 0.75rem 1.5rem; border-radius: 8px;" onclick="window.rajeshDemo.goToStep(1)">
+                            <i class="fas fa-redo"></i> Restart Demo
+                        </button>
+                        <a href="/fuel-optimization" target="_blank" class="btn" style="background: linear-gradient(135deg, #00f0ff 0%, #0070f3 100%); color: #000; font-weight: 700; padding: 0.75rem 1.75rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-tachometer-alt"></i> Open Real-Time Fuel Engine
+                        </a>
+                        <button class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border-radius: 8px;" onclick="window.rajeshDemo.close()">
+                            <i class="fas fa-check"></i> Complete & Close
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer Controls -->
+            <div class="rajesh-modal-footer">
+                <button class="btn btn-secondary" id="rajesh-prev-btn" onclick="window.rajeshDemo.prevStep()" disabled>
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+                <div style="color: #94a3b8; font-size: 0.82rem; font-weight: 600;">
+                    Click <strong style="color: #00f0ff;">Next</strong> to advance flow-by-flow
+                </div>
+                <button class="btn btn-primary" id="rajesh-next-btn" onclick="window.rajeshDemo.nextStep()">
+                    See 3D Trajectory on 3D Model ➡
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Alert Container -->
     <div id="alert-container" class="alert"></div>
 
     <!-- JavaScript -->
     <script src="/static/js/dashboard_new.js"></script>
+    <script src="/static/js/rajesh_demo.js"></script>
     <script>
         // Tab switching functionality
         // Tab switching functionality
