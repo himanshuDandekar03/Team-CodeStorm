@@ -173,7 +173,12 @@ def load_tle_catalogue(cache_dir="tle_cache"):
     """
     catalogue = []
     if not os.path.isdir(cache_dir):
-        return catalogue
+        # Module-relative fallback
+        _base_cand = os.path.join(os.path.dirname(os.path.abspath(__file__)), cache_dir)
+        if os.path.isdir(_base_cand):
+            cache_dir = _base_cand
+        else:
+            return catalogue
 
     # Gather all .txt cache files, newest first
     files = sorted(

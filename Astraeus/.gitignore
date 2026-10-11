@@ -3,5 +3,4 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
-tle_cache/
 tle_data/
