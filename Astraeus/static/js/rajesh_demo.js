@@ -42,12 +42,41 @@ class RajeshCollisionDemo {
         this.rOrbit = (this.R_EARTH + this.ALT_KM) * this.SCALE;
         this.rEarthScaled = this.R_EARTH * this.SCALE;
 
-        // Conjunction collision point in 3D
-        this.collisionPoint = new THREE.Vector3(
-            this.rOrbit * Math.cos(THREE.MathUtils.degToRad(42.36)) * Math.cos(THREE.MathUtils.degToRad(-71.06)),
-            this.rOrbit * Math.sin(THREE.MathUtils.degToRad(42.36)),
-            this.rOrbit * Math.cos(THREE.MathUtils.degToRad(42.36)) * Math.sin(THREE.MathUtils.degToRad(-71.06))
+        // Collision Unit Vector (Latitude 42.36° N, 45.0° azimuth in X-Z plane, facing camera directly)
+        // [cos(42.36°)*cos(45°), sin(42.36°), cos(42.36°)*sin(45°)]
+        this.uColl = new THREE.Vector3(0.52249952, 0.67378668, 0.52249952);
+        this.collisionPoint = this.uColl.clone().multiplyScalar(this.rOrbit);
+
+        // Orthonormal orbital bases: both Orbit 1 (Inc: 53.0°) and Orbit 2 (Inc: 86.4°) pass through this.uColl at theta = 0
+        this.e1_1 = this.uColl.clone();
+        this.e1_2 = new THREE.Vector3(-0.85234901, 0.42875422, 0.29945112);
+
+        this.e2_1 = this.uColl.clone();
+        this.e2_2 = new THREE.Vector3(0.41462920, -0.73625325, 0.53480255);
+    }
+
+    getOrbitPoint(orbitIndex, theta, r = this.rOrbit) {
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const e1 = (orbitIndex === 1) ? this.e1_1 : this.e2_1;
+        const e2 = (orbitIndex === 1) ? this.e1_2 : this.e2_2;
+        return new THREE.Vector3(
+            r * (cosT * e1.x + sinT * e2.x),
+            r * (cosT * e1.y + sinT * e2.y),
+            r * (cosT * e1.z + sinT * e2.z)
         );
+    }
+
+    getOrbitVelocity(orbitIndex, theta) {
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const e1 = (orbitIndex === 1) ? this.e1_1 : this.e2_1;
+        const e2 = (orbitIndex === 1) ? this.e1_2 : this.e2_2;
+        return new THREE.Vector3(
+            -sinT * e1.x + cosT * e2.x,
+            -sinT * e1.y + cosT * e2.y,
+            -sinT * e1.z + cosT * e2.z
+        ).normalize();
     }
 
     async init() {
@@ -483,17 +512,13 @@ class RajeshCollisionDemo {
 
     createOrbits() {
         const r = this.rOrbit;
+        const segments = 240;
 
-        // Orbit 1: ASTRA-SAT 1 (Cyan, Inclination 53 deg)
+        // Orbit 1: ASTRA-SAT 1 (Cyan line, Inclination 53.0°)
         const orbit1Points = [];
-        const inc1 = THREE.MathUtils.degToRad(53.0);
-        const segments = 180;
         for (let i = 0; i <= segments; i++) {
             const theta = (i / segments) * Math.PI * 2;
-            const x = r * Math.cos(theta);
-            const y = r * Math.sin(theta) * Math.sin(inc1);
-            const z = r * Math.sin(theta) * Math.cos(inc1);
-            orbit1Points.push(new THREE.Vector3(x, y, z));
+            orbit1Points.push(this.getOrbitPoint(1, theta, r));
         }
         const orbit1Geo = new THREE.BufferGeometry().setFromPoints(orbit1Points);
         const orbit1Mat = new THREE.LineBasicMaterial({
@@ -505,18 +530,12 @@ class RajeshCollisionDemo {
         this.orbit1Line = new THREE.Line(orbit1Geo, orbit1Mat);
         this.scene.add(this.orbit1Line);
 
-        // Orbit 2: COSMOS-2412 DEBRIS (Red, Inclination 86.4 deg)
-        // Oriented to cross Orbit 1 at the collision intersection point!
+        // Orbit 2: COSMOS-2412 DEBRIS (Red line, Inclination 86.4°)
+        // Passes PRECISELY through Orbit 1 at theta = 0 (this.collisionPoint)
         const orbit2Points = [];
-        const inc2 = THREE.MathUtils.degToRad(86.4);
-        const raan2 = THREE.MathUtils.degToRad(128.0);
         for (let i = 0; i <= segments; i++) {
             const theta = (i / segments) * Math.PI * 2;
-            let vec = new THREE.Vector3(r * Math.cos(theta), r * Math.sin(theta), 0);
-            // Rotate inclination & RAAN
-            vec.applyAxisAngle(new THREE.Vector3(1, 0, 0), inc2);
-            vec.applyAxisAngle(new THREE.Vector3(0, 1, 0), raan2);
-            orbit2Points.push(vec);
+            orbit2Points.push(this.getOrbitPoint(2, theta, r));
         }
         const orbit2Geo = new THREE.BufferGeometry().setFromPoints(orbit2Points);
         const orbit2Mat = new THREE.LineBasicMaterial({
@@ -528,19 +547,16 @@ class RajeshCollisionDemo {
         this.orbit2Line = new THREE.Line(orbit2Geo, orbit2Mat);
         this.scene.add(this.orbit2Line);
 
-        // Deflected Orbit (for Step 4) — Green glowing deflected path
+        // Deflected Orbit (for Step 4) — Glowing Green deflected trajectory
         const deflectedPoints = [];
-        const deltaR = 0.524; // Scaled outward radial shift
+        const deltaR = 0.524; // Scaled 52.4 km miss distance clearance
         for (let i = 0; i <= segments; i++) {
             const theta = (i / segments) * Math.PI * 2;
-            // Radial displacement concentrated near the encounter point (theta ~ Math.PI * 0.75)
-            const phaseDist = Math.abs(theta - Math.PI * 0.75);
-            const radialKick = deltaR * Math.exp(-(phaseDist * phaseDist) / 1.5);
+            // Radial displacement centered at the conjunction encounter (theta = 0)
+            const phaseDist = Math.min(theta, Math.PI * 2 - theta);
+            const radialKick = deltaR * Math.exp(-(phaseDist * phaseDist) / 1.2);
             const rEff = r + radialKick;
-            const x = rEff * Math.cos(theta);
-            const y = rEff * Math.sin(theta) * Math.sin(inc1);
-            const z = rEff * Math.sin(theta) * Math.cos(inc1);
-            deflectedPoints.push(new THREE.Vector3(x, y, z));
+            deflectedPoints.push(this.getOrbitPoint(1, theta, rEff));
         }
         const deflectedGeo = new THREE.BufferGeometry().setFromPoints(deflectedPoints);
         const deflectedMat = new THREE.LineBasicMaterial({
@@ -599,26 +615,36 @@ class RajeshCollisionDemo {
     createCollisionMarker() {
         const markerGroup = new THREE.Group();
 
-        // Pulsing ring
-        const ringGeo = new THREE.RingGeometry(0.3, 0.5, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0044, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+        // Pulsing outer ring
+        const ringGeo = new THREE.RingGeometry(0.32, 0.48, 32);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0044, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         markerGroup.add(ring);
 
-        // Center dot
-        const dotGeo = new THREE.SphereGeometry(0.12, 16, 16);
+        // Inner reticle ring
+        const innerRingGeo = new THREE.RingGeometry(0.12, 0.18, 24);
+        const innerRingMat = new THREE.MeshBasicMaterial({ color: 0xff3366, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+        const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+        markerGroup.add(innerRing);
+
+        // Center collision dot
+        const dotGeo = new THREE.SphereGeometry(0.09, 16, 16);
         const dotMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const dot = new THREE.Mesh(dotGeo, dotMat);
         markerGroup.add(dot);
 
-        // Position at collision point
-        const encTheta = Math.PI * 0.75;
-        const inc1 = THREE.MathUtils.degToRad(53.0);
-        markerGroup.position.set(
-            this.rOrbit * Math.cos(encTheta),
-            this.rOrbit * Math.sin(encTheta) * Math.sin(inc1),
-            this.rOrbit * Math.sin(encTheta) * Math.cos(inc1)
-        );
+        // Crosshairs for high-tech HUD targeting appearance
+        const crosshairMat = new THREE.LineBasicMaterial({ color: 0xff3366, transparent: true, opacity: 0.8 });
+        const chGeoH = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.55, 0, 0), new THREE.Vector3(0.55, 0, 0)]);
+        const chH = new THREE.Line(chGeoH, crosshairMat);
+        markerGroup.add(chH);
+
+        const chGeoV = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.55, 0), new THREE.Vector3(0, 0.55, 0)]);
+        const chV = new THREE.Line(chGeoV, crosshairMat);
+        markerGroup.add(chV);
+
+        // Position PRECISELY at the physical orbital intersection point
+        markerGroup.position.copy(this.collisionPoint);
         markerGroup.lookAt(new THREE.Vector3(0, 0, 0));
 
         this.collisionMarker = markerGroup;
@@ -626,16 +652,16 @@ class RajeshCollisionDemo {
 
         // Safe clearance marker (for Step 4)
         const safeGroup = new THREE.Group();
-        const safeRingGeo = new THREE.RingGeometry(0.35, 0.55, 32);
-        const safeRingMat = new THREE.MeshBasicMaterial({ color: 0x00e676, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+        const safeRingGeo = new THREE.RingGeometry(0.32, 0.52, 32);
+        const safeRingMat = new THREE.MeshBasicMaterial({ color: 0x00e676, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
         const safeRing = new THREE.Mesh(safeRingGeo, safeRingMat);
         safeGroup.add(safeRing);
 
-        const safeDot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0x00e676 }));
+        const safeDot = new THREE.Mesh(new THREE.SphereGeometry(0.10, 16, 16), new THREE.MeshBasicMaterial({ color: 0x00e676 }));
         safeGroup.add(safeDot);
 
-        safeGroup.position.copy(markerGroup.position);
-        safeGroup.position.multiplyScalar(1.07); // offset outward
+        const deltaR = 0.524;
+        safeGroup.position.copy(this.uColl).multiplyScalar(this.rOrbit + deltaR);
         safeGroup.lookAt(new THREE.Vector3(0, 0, 0));
         safeGroup.visible = false;
 
@@ -702,36 +728,33 @@ class RajeshCollisionDemo {
 
         // Animate Satellite 1 along its orbit
         if (this.sat1Mesh) {
-            const inc1 = THREE.MathUtils.degToRad(53.0);
             const theta1 = this.simTime % (Math.PI * 2);
             let rEff = this.rOrbit;
 
             if (this.currentStep >= 4 && this.maneuverApplied) {
-                // Follow the deflected path
-                const phaseDist = Math.abs(theta1 - Math.PI * 0.75);
-                const radialKick = 0.524 * Math.exp(-(phaseDist * phaseDist) / 1.5);
+                // Follow the deflected path: clearance centered at theta = 0
+                const phaseDist = Math.min(theta1, Math.PI * 2 - theta1);
+                const radialKick = 0.524 * Math.exp(-(phaseDist * phaseDist) / 1.2);
                 rEff += radialKick;
             }
 
-            const x1 = rEff * Math.cos(theta1);
-            const y1 = rEff * Math.sin(theta1) * Math.sin(inc1);
-            const z1 = rEff * Math.sin(theta1) * Math.cos(inc1);
-            this.sat1Mesh.position.set(x1, y1, z1);
-            this.sat1Mesh.rotation.y += 0.02;
+            const p1 = this.getOrbitPoint(1, theta1, rEff);
+            this.sat1Mesh.position.copy(p1);
+
+            // Orient spacecraft nose forward along velocity vector
+            const v1 = this.getOrbitVelocity(1, theta1);
+            this.sat1Mesh.lookAt(p1.clone().add(v1));
         }
 
         // Animate Satellite 2 along its orbit
         if (this.sat2Mesh) {
-            const inc2 = THREE.MathUtils.degToRad(86.4);
-            const raan2 = THREE.MathUtils.degToRad(128.0);
-            // Phased so that at theta = Math.PI * 0.75, they converge
-            const theta2 = (this.simTime + 0.12) % (Math.PI * 2);
-            let vec2 = new THREE.Vector3(this.rOrbit * Math.cos(theta2), this.rOrbit * Math.sin(theta2), 0);
-            vec2.applyAxisAngle(new THREE.Vector3(1, 0, 0), inc2);
-            vec2.applyAxisAngle(new THREE.Vector3(0, 1, 0), raan2);
-            this.sat2Mesh.position.copy(vec2);
-            this.sat2Mesh.rotation.x += 0.03;
-            this.sat2Mesh.rotation.z += 0.015;
+            const theta2 = this.simTime % (Math.PI * 2);
+            const p2 = this.getOrbitPoint(2, theta2, this.rOrbit);
+            this.sat2Mesh.position.copy(p2);
+
+            const v2 = this.getOrbitVelocity(2, theta2);
+            this.sat2Mesh.lookAt(p2.clone().add(v2));
+            this.sat2Mesh.rotation.z += 0.02; // Tumbling fragment spin
         }
 
         // Update controls
